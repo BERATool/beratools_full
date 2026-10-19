@@ -28,6 +28,9 @@ def _import_robjects():
     command is a shell script that needs sh.exe (from Rtools). Without it, cmd prints
     "'sh' is not recognized as an internal or external command" to stderr; rpy2 catches the
     failure and falls back to R_HOME/bin/x64, so the message is noise. Silence that one call.
+
+    When sh.exe is found (e.g. from Git) but make is not, the script exits 0 with no output
+    and rpy2 crashes with IndexError instead of falling back. Report that as a failure too.
     """
     if os.name != "nt":
         import rpy2.robjects as robjects_module
@@ -36,9 +39,14 @@ def _import_robjects():
     check_output = subprocess.check_output
 
     def quiet_check_output(cmd, *args, **kwargs):
-        if "CMD" in cmd and "config" in cmd:
-            kwargs.setdefault("stderr", subprocess.DEVNULL)
-        return check_output(cmd, *args, **kwargs)
+        if "CMD" not in cmd or "config" not in cmd:
+            return check_output(cmd, *args, **kwargs)
+
+        kwargs.setdefault("stderr", subprocess.DEVNULL)
+        output = check_output(cmd, *args, **kwargs)
+        if not output.strip():
+            raise subprocess.CalledProcessError(1, cmd, output)
+        return output
 
     subprocess.check_output = quiet_check_output
     try:
