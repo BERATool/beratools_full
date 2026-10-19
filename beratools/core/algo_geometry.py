@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from shapely.geometry import LineString, MultiPolygon, Polygon
 import logging
+import math
+
+from shapely.geometry import LineString, MultiLineString, MultiPolygon, Point, Polygon
+from shapely.ops import linemerge, substring
 
 LOGGER_NAME = "algo_geometry"
 logger = logging.getLogger(LOGGER_NAME)
@@ -21,6 +24,79 @@ def chaikin_smooth_line(line: LineString, *, iterations: int) -> LineString:
         smoothed.append(points[-1])
         points = smoothed
     return LineString(points)
+
+
+def vertex_interior_angle(p1, p2, p3) -> float:
+    """Return the interior angle in degrees at p2; 180 is straight, smaller is sharper."""
+    dx1, dy1 = p1[0] - p2[0], p1[1] - p2[1]
+    dx2, dy2 = p3[0] - p2[0], p3[1] - p2[1]
+    magnitude1 = math.hypot(dx1, dy1)
+    magnitude2 = math.hypot(dx2, dy2)
+    if magnitude1 == 0 or magnitude2 == 0:
+        return 180.0
+
+    cos_angle = (dx1 * dx2 + dy1 * dy2) / (magnitude1 * magnitude2)
+    return math.degrees(math.acos(max(-1.0, min(1.0, cos_angle))))
+
+
+def smooth_sharp_vertices(line, *, angle_threshold: float, buffer_distance: float):
+    """
+    Cut sharp corners of a line and leave the rest of the line unchanged.
+
+    Each vertex with an interior angle below angle_threshold is replaced by a straight
+    chord between the points where the line enters and leaves a circle of radius
+    buffer_distance around that vertex.
+
+    Ported from SegLine by Irina Terentieva
+    (https://github.com/IrinaTerentieva/SegLine, src/utils/smooth_centerline.py).
+    """
+    if line is None or line.is_empty or buffer_distance <= 0:
+        return line
+    if line.geom_type == "MultiLineString":
+        line = linemerge(line)
+        if line.geom_type == "MultiLineString":
+            return MultiLineString(
+                [
+                    smooth_sharp_vertices(
+                        part, angle_threshold=angle_threshold, buffer_distance=buffer_distance
+                    )
+                    for part in line.geoms
+                ]
+            )
+    if line.geom_type != "LineString" or len(line.coords) < 3:
+        return line
+
+    coords = list(line.coords)
+    smoothed = line
+    next_index = 1
+    for i in range(1, len(coords) - 1):
+        # Skip the vertex right after a cut corner to avoid over-smoothing
+        if i < next_index:
+            continue
+        if vertex_interior_angle(coords[i - 1], coords[i], coords[i + 1]) < angle_threshold:
+            smoothed = _cut_corner(smoothed, Point(coords[i]), buffer_distance)
+            next_index = i + 2
+    return smoothed
+
+
+def _cut_corner(line: LineString, vertex: Point, buffer_distance: float) -> LineString:
+    piece = line.intersection(vertex.buffer(buffer_distance))
+    if piece.geom_type != "LineString" or piece.is_empty:
+        return line
+
+    chord_start, chord_end = piece.coords[0], piece.coords[-1]
+    start_dist = line.project(Point(chord_start))
+    end_dist = line.project(Point(chord_end))
+    if start_dist >= end_dist:
+        return line
+
+    new_coords = []
+    if start_dist > 0:
+        new_coords.extend(substring(line, 0, start_dist).coords[:-1])
+    new_coords.extend([chord_start, chord_end])
+    if end_dist < line.length:
+        new_coords.extend(substring(line, end_dist, line.length).coords[1:])
+    return LineString(new_coords) if len(new_coords) >= 2 else line
 
 
 def chaikin_smooth_polygon(geometry, *, iterations: int):

@@ -380,6 +380,93 @@ class TestGroundFootprint:
 
 
 # ---------------------------------------------------------------------------
+# Smooth Centerline
+# ---------------------------------------------------------------------------
+
+
+class TestSmoothCenterline:
+    TOOL = "Smooth Centerline"
+
+    def test_widget_types(self, make_tool_widget, btdata):
+        tw = make_tool_widget(self.TOOL)
+        assert len(tw.widget_list) == len(btdata.get_bera_tool_args(self.TOOL))
+        assert isinstance(_find_widget(tw, "in_line"), FileSelector)
+        assert isinstance(_find_widget(tw, "angle_threshold"), NumericInput)
+        assert isinstance(_find_widget(tw, "buffer_distance"), NumericInput)
+        assert isinstance(_find_widget(tw, "out_line"), FileSelector)
+
+    def test_defaults(self, make_tool_widget):
+        tw = make_tool_widget(self.TOOL)
+        args = tw.get_widgets_arguments()
+        assert args["angle_threshold"] == pytest.approx(130.0)
+        assert args["buffer_distance"] == pytest.approx(2.0)
+
+    def test_round_trip(self, make_tool_widget, btdata, testdata_dir, tmp_path):
+        tw = make_tool_widget(self.TOOL)
+        _set_widget_values(
+            tw,
+            {
+                "in_line": {"path": str(testdata_dir / "integration_aoi.gpkg"), "layer": "centerline"},
+                "angle_threshold": 150.0,
+                "buffer_distance": 3.5,
+                "out_line": {"path": str(tmp_path / "out.gpkg"), "layer": "smoothed"},
+            },
+        )
+
+        args = tw.get_widgets_arguments()
+        assert args["angle_threshold"] == pytest.approx(150.0)
+        assert args["buffer_distance"] == pytest.approx(3.5)
+        assert str(testdata_dir / "integration_aoi.gpkg") in args["in_line"]
+        assert btdata.validate_tool_params(self.TOOL, args) == args
+
+
+# ---------------------------------------------------------------------------
+# Footprint Plots and Subplots
+# ---------------------------------------------------------------------------
+
+
+class TestFootprintPlots:
+    TOOL = "Footprint Plots and Subplots"
+
+    def test_widget_types(self, make_tool_widget, btdata):
+        tw = make_tool_widget(self.TOOL)
+        assert len(tw.widget_list) == len(btdata.get_bera_tool_args(self.TOOL))
+        assert isinstance(_find_widget(tw, "in_footprint"), FileSelector)
+        assert isinstance(_find_widget(tw, "in_line"), FileSelector)
+        assert isinstance(_find_widget(tw, "plot_area"), NumericInput)
+        assert isinstance(_find_widget(tw, "subplot_area"), NumericInput)
+        assert isinstance(_find_widget(tw, "out_plot"), FileSelector)
+        assert isinstance(_find_widget(tw, "out_subplot"), FileSelector)
+
+    def test_defaults(self, make_tool_widget):
+        tw = make_tool_widget(self.TOOL)
+        args = tw.get_widgets_arguments()
+        assert args["plot_area"] == pytest.approx(100.0)
+        assert args["subplot_area"] == pytest.approx(10.0)
+
+    def test_round_trip(self, make_tool_widget, btdata, testdata_dir, tmp_path):
+        gpkg = str(testdata_dir / "integration_aoi.gpkg")
+        tw = make_tool_widget(self.TOOL)
+        _set_widget_values(
+            tw,
+            {
+                "in_footprint": {"path": gpkg, "layer": "footprint_abs"},
+                "in_line": {"path": gpkg, "layer": "centerline"},
+                "plot_area": 200.0,
+                "subplot_area": 20.0,
+                "out_plot": {"path": str(tmp_path / "out.gpkg"), "layer": "plots"},
+                "out_subplot": {"path": str(tmp_path / "out.gpkg"), "layer": "subplots"},
+            },
+        )
+
+        args = tw.get_widgets_arguments()
+        assert args["plot_area"] == pytest.approx(200.0)
+        assert args["subplot_area"] == pytest.approx(20.0)
+        assert gpkg in args["in_footprint"] and gpkg in args["in_line"]
+        assert btdata.validate_tool_params(self.TOOL, args) == args
+
+
+# ---------------------------------------------------------------------------
 # Feature Buffer
 # ---------------------------------------------------------------------------
 

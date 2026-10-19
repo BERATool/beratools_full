@@ -693,6 +693,61 @@
           ]
         },
         {
+          "name": "Smooth Centerline",
+          "info": "Smooth sharp vertices of centerlines and keep the rest of each line unchanged.",
+          "tool_type": "python",
+          "tool_api": "smooth_centerline",
+          "icon": "tool.gif",
+          "tech_link": "https://beratool.github.io/beratools/user/smooth_centerline",
+          "parameters": [
+            {
+              "variable": "in_line",
+              "accepts": "line",
+              "label": "Input Centerline",
+              "description": "Input centerlines to smooth.",
+              "type": "file",
+              "subtype": "vector|line",
+              "default": "",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "angle_threshold",
+              "label": "Angle threshold (degrees)",
+              "description": "Vertices with an interior angle below this value are smoothed (180 is a straight line). Higher values smooth more vertices.",
+              "type": "number",
+              "subtype": "float",
+              "default": 130,
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "buffer_distance",
+              "label": "Buffer distance (m)",
+              "description": "Radius around a sharp vertex that is replaced by a straight cut. Larger values smooth more strongly.",
+              "type": "number",
+              "subtype": "float",
+              "default": 2.0,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            },
+            {
+              "variable": "out_line",
+              "produces": {
+                "line": []
+              },
+              "label": "Smoothed Centerline",
+              "description": "Output smoothed centerline file.",
+              "type": "file",
+              "subtype": "vector",
+              "default": "",
+              "output": true,
+              "optional": false
+            }
+          ]
+        },
+        {
           "name": "Canopy Footprint (Absolute Threshold)",
           "info": "Creates footprint polygons for each input line based on a least cost corridor method and individual line thresholds.",
           "tool_type": "python",
@@ -1126,6 +1181,84 @@
               },
               "label": "Output Ground Footprint",
               "description": "Output fixed width ground footprint file.",
+              "type": "file",
+              "subtype": "vector",
+              "default": "",
+              "output": true,
+              "optional": false
+            }
+          ]
+        },
+        {
+          "name": "Footprint Plots and Subplots",
+          "info": "Split line footprints into plots and subplots along their centerlines, with plot, side and subplot IDs.",
+          "tool_type": "python",
+          "tool_api": "footprint_plots",
+          "icon": "tool.gif",
+          "tech_link": "https://beratool.github.io/beratools/user/footprint_plots",
+          "parameters": [
+            {
+              "variable": "in_footprint",
+              "accepts": "footprint",
+              "label": "Input Footprint",
+              "description": "Input line footprint polygons.",
+              "type": "file",
+              "subtype": "vector|polygon",
+              "default": "",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "in_line",
+              "accepts": "line",
+              "label": "Input Centerline",
+              "description": "Centerlines of the footprints. Each footprint uses the centerline with the longest overlap.",
+              "type": "file",
+              "subtype": "vector|line",
+              "default": "",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "plot_area",
+              "label": "Plot area (m2)",
+              "description": "Target plot area covering both sides of the line. Each side of a plot is a separate feature.",
+              "type": "number",
+              "subtype": "float",
+              "default": 100.0,
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "subplot_area",
+              "label": "Subplot area (m2)",
+              "description": "Target subplot area on one side of the line. Subplots nest inside plots, so plot area / (2 x subplot area) is rounded to whole subplots.",
+              "type": "number",
+              "subtype": "float",
+              "default": 10.0,
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "out_plot",
+              "produces": {
+                "footprint": []
+              },
+              "label": "Output Plots",
+              "description": "Output plot polygons, one feature per plot side.",
+              "type": "file",
+              "subtype": "vector",
+              "default": "",
+              "output": true,
+              "optional": false
+            },
+            {
+              "variable": "out_subplot",
+              "produces": {
+                "footprint": []
+              },
+              "label": "Output Subplots",
+              "description": "Output subplot polygons.",
               "type": "file",
               "subtype": "vector",
               "default": "",

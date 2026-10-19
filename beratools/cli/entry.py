@@ -14,9 +14,11 @@ TOOL_ALIASES = {
     "check_line": "check_seed_line",
     "vertex_opt": "vertex_optimization",
     "centerline": "centerline",
+    "smooth_line": "smooth_centerline",
     "footprint_abs": "canopy_footprint_absolute",
     "footprint_rel": "line_footprint_relative",
     "footprint_grd": "ground_footprint",
+    "footprint_plots": "footprint_plots",
     "dtm": "rpy_dtm_by",
     "normalize": "rpy_normalized_PC",
     "chm_dsm": "rpy_CHM_DSM_by",
@@ -193,6 +195,10 @@ def _resolve_tool_function(tool_api: str):
         from beratools.tools.centerline import centerline
 
         return centerline
+    if tool_api == "smooth_centerline":
+        from beratools.tools.smooth_centerline import smooth_centerline
+
+        return smooth_centerline
     if tool_api == "canopy_footprint_absolute":
         from beratools.tools.canopy_footprint_absolute import canopy_footprint_abs
 
@@ -205,6 +211,10 @@ def _resolve_tool_function(tool_api: str):
         from beratools.tools.ground_footprint import ground_footprint
 
         return ground_footprint
+    if tool_api == "footprint_plots":
+        from beratools.tools.footprint_plots import footprint_plots
+
+        return footprint_plots
     if tool_api == "rpy_dtm_by":
         from beratools.tools.rpy_dtm_by import rpy_dtm
 

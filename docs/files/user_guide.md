@@ -40,16 +40,23 @@ graph TD
     A --> C["Centerline"]
     C --> D1["Canopy Footprint<br/>Absolute"]
     C --> D2["Canopy Footprint<br/>Relative"]
+    C --> S["Smooth Centerline"]
+    S --> D1
+    S --> D2
     D1 --> E["Ground Footprint"]
     D2 --> E["Ground Footprint"]
-    %% Style optional step (Vertex Optimization)
+    E --> F["Footprint Plots<br/>and Subplots"]
+    %% Style optional steps (Vertex Optimization, Smooth Centerline)
     style B fill:#eee,stroke:#aaa,color:#666,stroke-width:1px,stroke-dasharray:5 5;
+    style S fill:#eee,stroke:#aaa,color:#666,stroke-width:1px,stroke-dasharray:5 5;
     click A "../user/check_seed_line" "Check Seed Line"
     click B "../user/vertex_optimization" "Vertex Optimization"
     click C "../user/centerline" "Centerline"
     click D1 "../user/canopy_footprint_abs" "Canopy Footprint Absolute"
     click D2 "../user/line_footprint_rel" "Canopy Footprint Relative"
     click E "../user/ground_footprint" "Ground Footprint"
+    click S "../user/smooth_centerline" "Smooth Centerline"
+    click F "../user/footprint_plots" "Footprint Plots and Subplots"
 ```
 
 ### PC2Products (LiDAR) workflow
