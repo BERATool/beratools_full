@@ -1,0 +1,54 @@
+# pc2products_config.yaml for hydra, used by pc2products_workflow.py
+# Paths are relative to the folder you run the script from (the repository root by default).
+# Replace them with absolute paths to run on your own data.
+DATA_DIR: tests/data/LiDAR
+CLASSIFIED_DIR: ${DATA_DIR}/Classified_PC
+RASTER_DIR: ${DATA_DIR}/Raster_Output
+
+processes: null
+
+# Keep relative paths relative to where the script is run, not Hydra's output folder.
+hydra:
+  job:
+    chdir: false
+
+steps_to_run:
+  - las_info
+  - cellsize
+  - gnd_csf
+  - dtm
+  - chm_dsm
+  - hh
+
+args_las_info:
+  in_las_folder: ${DATA_DIR}
+
+args_cellsize:
+  in_las_folder: ${DATA_DIR}
+
+args_gnd_csf:
+  in_las_folder: ${DATA_DIR}
+  out_folder: ${CLASSIFIED_DIR}
+  slope: false
+  class_threshold: 0.3
+  cloth_resolution: 1.0
+  rigidness: 1
+
+# The raster steps read the ground-classified tiles written by gnd_csf.
+args_dtm:
+  in_las_folder: ${CLASSIFIED_DIR}
+  out_folder: ${RASTER_DIR}
+  style: tin
+
+args_chm_dsm:
+  in_las_folder: ${CLASSIFIED_DIR}
+  out_folder: ${RASTER_DIR}
+  style: tin
+
+args_hh:
+  in_las_folder: ${CLASSIFIED_DIR}
+  out_folder: ${RASTER_DIR}
+  Smooth_by: median
+  Min_ws: 3.0
+  lawn_range: 0.1
+  cell_size: 0

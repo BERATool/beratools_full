@@ -58,6 +58,20 @@ Activate your conda or pixi environment, then run:
 
 The editable mode (`-e`) allows you to make changes to the source code and have them reflected immediately without needing to reinstall the package.
 
+### R for the PC2Products tools
+
+`environment.yml` and `pixi.toml` include R 4.5.x and rpy2 for the PC2Products (LiDAR) tools; the
+R packages are installed from CRAN by the tools the first time they run. To install every R package
+up front and check that they load, run:
+
+```bash
+python -m pytest tests/test_r_environment.py -v
+```
+
+On Linux, CRAN packages such as `sf` and `terra` are compiled from source, which needs the GDAL, GEOS,
+PROJ and udunits development libraries (for example `libgdal-dev libgeos-dev libproj-dev libudunits2-dev`
+on Ubuntu). See [Installation](../user/installation.md#r-for-the-pc2products-lidar-tools).
+
 ## Testing your changes
 
 Install testing dependencies if not already installed:

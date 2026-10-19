@@ -43,6 +43,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The PC2Products LiDAR tools (rpy_*) run R through rpy2; R itself must be installed separately.
+r = [
+    "rpy2",
+]
 dev = [
     "pytest",
     "pytest-cov",

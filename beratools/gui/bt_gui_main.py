@@ -13,9 +13,11 @@ Description:
     The purpose of this script is to provide main GUI functions.
 """
 
+import copy
 import json
 import os
 import platform
+import re
 import shlex
 import signal
 import sys
@@ -23,7 +25,9 @@ import webbrowser
 from pathlib import Path
 
 import beratools.core.constants as bt_const
+from beratools.core import pipeline
 from beratools.gui import bt_data
+from beratools.gui.pipeline_panel import PipelinePanel
 from beratools.utility import env_checks
 from beratools.gui.tool_widgets import ToolWidgets
 
@@ -89,6 +93,9 @@ class BTTreeView(QtWidgets.QWidget):
         self.tree_view.setRootIsDecorated(True)
         self.tree_view.setUniformRowHeights(True)
         self.tree_view.setModel(self.tags_model)
+        # tools can be dragged into the Pipeline panel
+        self.tree_view.setDragEnabled(True)
+        self.tree_view.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
 
         # layout
         main_layout = QtWidgets.QVBoxLayout()
@@ -145,6 +152,7 @@ class BTTreeView(QtWidgets.QWidget):
             parent = QtGui.QStandardItem(
                 QtGui.QIcon(os.path.join(bt_const.ASSETS_PATH, "close.gif")), toolbox
             )
+            parent.setDragEnabled(False)
             for j, tool in enumerate(sorted_tools[i]):
                 child = QtGui.QStandardItem(QtGui.QIcon(os.path.join(bt_const.ASSETS_PATH, "tool.gif")), tool)
                 if i == 0 and j == 0:
@@ -388,6 +396,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cancel_op = False
         self._stdout_buffer = ""
 
+        # pipeline: the step shown in the tool form, and the steps of a running pipeline
+        self.pipeline_step = None
+        self.pipeline_run = None
+        self.pipeline_index = 0
+
         # BERA tool list
         self.bera_tools = bt.bera_tools
         self.tools_list = bt.tools_list
@@ -415,12 +428,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tool_history.set_data_list(bt.tool_history)
         self.tool_history.tool_changed.connect(self.set_tool)
 
-        # group box
-        tool_history_box = QtWidgets.QGroupBox()
-        tool_history_layout = QtWidgets.QVBoxLayout()
-        tool_history_layout.addWidget(self.tool_history)
-        tool_history_box.setTitle("Tool history")
-        tool_history_box.setLayout(tool_history_layout)
+        # Pipeline panel
+        self.pipeline_panel = PipelinePanel(bt)
+        self.pipeline_panel.step_selected.connect(self.show_pipeline_step)
+        self.pipeline_panel.run_requested.connect(self.run_pipeline)
+        self.pipeline_panel.add_requested.connect(lambda: self.pipeline_panel.add_tool(self.tool_name))
+
+        # tabs for tool history and pipeline; dragging a tool over a tab switches to it
+        self.left_tabs = QtWidgets.QTabWidget()
+        self.left_tabs.addTab(self.tool_history, "Tool history")
+        self.left_tabs.addTab(self.pipeline_panel, "Pipeline")
+        self.left_tabs.tabBar().setAcceptDrops(True)
+        self.left_tabs.tabBar().setChangeCurrentOnDrag(True)
 
         # left layout
         page_layout = QtWidgets.QHBoxLayout()
@@ -428,7 +447,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_layout = QtWidgets.QVBoxLayout()
 
         self.left_layout.addWidget(tree_box)
-        self.left_layout.addWidget(tool_history_box)
+        self.left_layout.addWidget(self.left_tabs)
 
         # top buttons
         label = QtWidgets.QLabel(f"{self.tool_name}")
@@ -560,21 +579,62 @@ class MainWindow(QtWidgets.QMainWindow):
         if tool:
             self.tool_name = tool
 
+        # choosing a tool from the tree or history stops editing a pipeline step
+        if self.pipeline_step is not None:
+            self.pipeline_step = None
+            self.pipeline_panel.list_widget.blockSignals(True)
+            self.pipeline_panel.list_widget.setCurrentRow(-1)
+            self.pipeline_panel.list_widget.blockSignals(False)
+
         # let tree view select the tool
         self.tree_view.select_tool_by_name(self.tool_name)
-        self.tool_api = bt.get_bera_tool_api(self.tool_name)
-        tool_args = bt.get_bera_tool_args(self.tool_name)
+        self._show_tool_form(self.tool_name, self.tool_name)
+
+    def _show_tool_form(self, tool_name, label_text):
+        self.tool_api = bt.get_bera_tool_api(tool_name)
+        tool_args = bt.get_bera_tool_args(tool_name)
 
         # update tool label
-        self.btn_layout_top.itemAt(0).widget().setText(self.tool_name)
+        self.btn_layout_top.itemAt(0).widget().setText(label_text)
 
         # update tool widget
-        self.tool_widget = ToolWidgets(self.tool_name, tool_args, bt.show_advanced, bt_data_obj=bt)
+        self.tool_widget = ToolWidgets(tool_name, tool_args, bt.show_advanced, bt_data_obj=bt)
         old_widget = self.tool_scroll_area.takeWidget()
         if old_widget is not None:
             old_widget.deleteLater()
         self.tool_scroll_area.setWidget(self.tool_widget)
         self.top_right_layout.update()
+
+    def show_pipeline_step(self, step):
+        """Show a pipeline step's arguments in the tool form; edits are stored in the step."""
+        self.pipeline_step = step
+        if step is None:
+            return
+
+        steps = self.pipeline_panel.steps
+        index = pipeline.step_index(steps, step["id"])
+        self.tool_name = bt.get_bera_tool_name(step["tool_api"])
+        self._show_tool_form(self.tool_name, f"Step {index + 1}: {self.tool_name}")
+        self.tool_widget.update_widgets(step["args"])
+
+        # linked inputs show what they will read (it may not exist until the pipeline runs) and can't be edited
+        for variable, source_id in step["links"].items():
+            input_widget = self.tool_widget.widgets_by_variable.get(variable)
+            source = pipeline.step_index(steps, source_id)
+            if input_widget is None or source is None:
+                continue
+            input_widget.in_file.setText("")
+            input_widget.in_file.setPlaceholderText(pipeline.describe_link(steps, step, variable))
+            input_widget.setEnabled(False)
+            input_widget.setToolTip(f"Comes from the output of step {source + 1}")
+
+        # a new step starts from the tool's saved or default values
+        self._store_pipeline_step_args()
+        self.tool_widget.connect_value_changed(self._store_pipeline_step_args)
+
+    def _store_pipeline_step_args(self, *_):
+        if self.pipeline_step is not None:
+            self.pipeline_step["args"] = self.tool_widget.get_widgets_values()
 
     def save_tool_parameter(self):
         # Retrieve tool parameters from GUI
@@ -710,7 +770,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 print("custom_callback: Problem parsing data into number: ", e)
             except Exception as e:
                 print(e)
-        elif "PROGRESS_LABEL" in value:
+        # R tools print "R_PROGRESS:<percent>". lidR's progress bar clears itself with spaces and
+        # carriage returns but no newline, so the marker can come after that on the same line.
+        r_progress = re.search(r"R_PROGRESS:(\d+)", value)
+        if r_progress:
+            self.progress_bar.setValue(int(r_progress.group(1)))
+            value = value[: r_progress.start()] + value[r_progress.end() :]
+            if not value.strip():
+                return
+        if "PROGRESS_LABEL" in value:
             str_label = extract_string_from_printout(value, "PROGRESS_LABEL")
             value = value.replace(str_label, "").strip()  # remove progress string
             value = value.replace('"', "")
@@ -732,25 +800,32 @@ class MainWindow(QtWidgets.QMainWindow):
             print("Please check the parameters.")
             return
 
+        bt.recent_tool = self.tool_name
+        self.save_tool_parameter()
+        self._launch_tool(self.tool_name, self.tool_api, args)
+
+        while self.process is not None:
+            sys.stdout.flush()
+            if self.cancel_op:
+                self.cancel_op = False
+                self.process.terminate()
+            else:
+                break
+
+    def _launch_tool(self, tool_name, tool_api, args):
         self.print_line_to_output("")
-        self.print_line_to_output(f"Starting tool {self.tool_name} ... \n")
+        self.print_line_to_output(f"Starting tool {tool_name} ... \n")
         self.print_line_to_output("-----------------------------")
         self.print_line_to_output("Tool arguments:")
         self.print_line_to_output(json.dumps(args, indent=4))
         self.print_line_to_output("")
 
-        bt.recent_tool = self.tool_name
-        self.save_tool_parameter()
-
         # Run the tool and check the return value for an error
-        for key in args.keys():
-            if type(args[key]) is not str:
-                args[key] = str(args[key])
-
-        tool_type, tool_args = bt.prepare_tool_run(self.tool_api, args, self.custom_callback)
+        args = pipeline.stringify_args(args)
+        tool_type, tool_args = bt.prepare_tool_run(tool_api, args, self.custom_callback)
 
         if self.process is None:  # No process running.
-            self.print_line_to_output(f"Tool {self.tool_name} started")
+            self.print_line_to_output(f"Tool {tool_name} started")
             self.print_line_to_output("-----------------------")
             self._stdout_buffer = ""
             self.process = QtCore.QProcess()  # Keep a reference to the QProcess
@@ -762,13 +837,55 @@ class MainWindow(QtWidgets.QMainWindow):
             self.process.finished.connect(self.process_finished)
             self.process.start(tool_type, tool_args)
 
-        while self.process is not None:
-            sys.stdout.flush()
-            if self.cancel_op:
-                self.cancel_op = False
-                self.process.terminate()
-            else:
-                break
+    def run_pipeline(self):
+        steps = self.pipeline_panel.steps
+        errors = pipeline.validate_pipeline(steps)
+        if errors:
+            QtWidgets.QMessageBox.warning(self, "Pipeline", "\n".join(errors))
+            return
+        if self.process is not None:
+            QtWidgets.QMessageBox.warning(self, "Pipeline", "A tool is already running.")
+            return
+
+        # run a copy, so editing the pipeline while it runs doesn't change the remaining steps
+        self.pipeline_run = copy.deepcopy(steps)
+        self.pipeline_index = 0
+        self.cancel_op = False
+        self.pipeline_panel.set_running(True)
+        self.btn_run.setEnabled(False)
+        self.print_line_to_output("")
+        self.print_line_to_output(f"Starting pipeline with {len(steps)} steps")
+        self._start_pipeline_step()
+
+    def _start_pipeline_step(self):
+        steps = self.pipeline_run
+        step = steps[self.pipeline_index]
+        tool_name = bt.get_bera_tool_name(step["tool_api"])
+        try:
+            args = pipeline.resolve_step_args(steps, self.pipeline_index)
+        except FileNotFoundError as err:
+            self._finish_pipeline(f"Pipeline stopped before step {self.pipeline_index + 1}: {err}")
+            return
+        self._launch_tool(f"{tool_name} (step {self.pipeline_index + 1}/{len(steps)})", step["tool_api"], args)
+
+    def _continue_pipeline(self, step_ok):
+        if self.cancel_op:
+            self.cancel_op = False
+            self._finish_pipeline("Pipeline canceled.")
+        elif not step_ok:
+            self._finish_pipeline(f"Pipeline stopped: step {self.pipeline_index + 1} failed.")
+        elif self.pipeline_index + 1 >= len(self.pipeline_run):
+            self._finish_pipeline("Pipeline completed.")
+        else:
+            self.pipeline_index += 1
+            # start the next step once the finished QProcess has been cleaned up
+            QtCore.QTimer.singleShot(0, self._start_pipeline_step)
+
+    def _finish_pipeline(self, msg):
+        self.pipeline_run = None
+        self.pipeline_panel.set_running(False)
+        self.btn_run.setEnabled(True)
+        self.message(msg)
 
     def stop_process(self):
         self.cancel_op = True
@@ -793,7 +910,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         data = self.process.readAllStandardOutput()
-        chunk = bytes(data).decode("utf8") if data else ""
+        try:
+            chunk = bytes(data).decode("utf-8")
+        except UnicodeDecodeError:
+            chunk = bytes(data).decode("cp1252", errors="replace")
         if chunk:
             self._stdout_buffer += chunk
 
@@ -817,25 +937,31 @@ class MainWindow(QtWidgets.QMainWindow):
         }
         state_name = states[state]
         if state_name == "Not running":
-            self.btn_run.setEnabled(True)
+            self.btn_run.setEnabled(self.pipeline_run is None)
             if self.cancel_op:
                 self.message("Tool operation canceled")
         elif state_name == "Starting":
             self.btn_run.setEnabled(False)
 
     def process_finished(self):
+        step_ok = True
         if self.process:
             self._drain_stdout(flush_partial=True)
 
             stderr_data = self.process.readAllStandardError()
             if stderr_data:
                 self.message(bytes(stderr_data).decode("utf8"))
+            if self.pipeline_run is not None:
+                step_ok = self.process.exitStatus() == QtCore.QProcess.NormalExit and self.process.exitCode() == 0
 
         self.message("Process finished.")
         self.process = None
         self._stdout_buffer = ""
         self.progress_bar.setValue(0)
         self.progress_label.setText("")
+
+        if self.pipeline_run is not None:
+            self._continue_pipeline(step_ok)
 
 
 def runner():

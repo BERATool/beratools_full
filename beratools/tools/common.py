@@ -20,6 +20,7 @@ import shapely.ops as sh_ops
 import xarray as xr
 import xrspatial
 from scipy import ndimage
+from pathlib import Path
 
 import beratools.core.constants as bt_const
 
@@ -334,3 +335,40 @@ def generate_line_args_DFP_NoClip(
         line_id += 1
 
     return line_argsL, line_argsR, line_argsC
+
+
+def has_raster_output(results: str | list, pattern=None) -> bool:
+    """Return True if the folder contains at least one raster file."""
+    raster_exts = {".tif", ".tiff", ".img", ".vrt", ".asc", ".bil", ".jp2"}
+    if isinstance(results, list):
+        if pattern:
+            return any(f.is_file() and f.suffix.lower() in raster_exts and f.match(pattern) for f in results)
+        else:
+            return any(f.is_file() and f.suffix.lower() in raster_exts for f in results)
+
+    else:
+        folder = Path(results)
+        if not folder.is_dir():
+            return False
+        return any(f.is_file() and f.suffix.lower() in raster_exts for f in folder.iterdir())
+
+
+def has_lidar_output(folder: str|Path) -> bool:
+    """Return True if the folder contains at least one lidar file."""
+    lidar_exts = {".laz", ".las"}
+    folder = Path(folder)
+    if not folder.is_dir():
+        return False
+
+    return any(f.is_file() and f.suffix.lower() in lidar_exts for f in folder.iterdir())
+
+def list_files_in_folder(folder: str|Path, pattern= None) -> list[Path]:
+    """List all files in a folder with a specific extension."""
+    files_list=[]
+    folder = Path(folder)
+    if folder.is_dir():
+        if pattern:
+            files_list=[f for f in folder.glob(pattern) if f.is_file()]
+        else:
+            files_list=[f for f in folder.iterdir() if f.is_file()]
+    return files_list

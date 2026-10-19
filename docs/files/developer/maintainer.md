@@ -42,6 +42,7 @@ Here is a summary of the actions defined in all workflow files in `.github/workf
     - Summary: Workflow integration tests using Pixi and pytest.
     - Trigger: On pushes to `main` and qualifying pull requests targeting `main` when application, test, Pixi/project configuration, or workflow files change.
     - Runs `tests/test_workflow.py` in the Pixi-managed Python 3.12 environment with terminal coverage reporting.
+    - Then installs the system GDAL/GEOS/PROJ/udunits libraries and runs `tests/test_r_environment.py` (which installs the R packages into the pixi R) and `tests/test_r_workflow.py` for the PC2Products tools. The timeout is 60 minutes to leave room for the R packages.
 
 ### Manual (workflow_dispatch)
 

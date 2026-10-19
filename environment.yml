@@ -22,4 +22,12 @@ dependencies:
   - pandarallel
   - tabulate
   - python-igraph
+  - psutil
+  - hydra-core
+  - pip
+  # R for the PC2Products LiDAR tools: they install the R packages they need (lidR, terra, sf, ...) on first use
+  - r-base>=4.5,<4.6
+  - pip:
+      # conda-forge has no win-64 rpy2 build for R 4.5, so install it from PyPI
+      - rpy2
 variables:

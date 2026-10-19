@@ -12,9 +12,25 @@ Description:
 
     Main entry point of BERA Tools.
 """
+## Set GDAL_DATA path to avoid GDAL
+# warning: Warning 3: Cannot find gdalvrt.xsd (GDAL_DATA is not defined)#
+import os
+import sys
+import pathlib
 
+# Configure GDAL immediately
+env_root = pathlib.Path(sys.executable).parent
+
+gdal_data = env_root / "Library" / "share" / "gdal"
+if gdal_data.exists():
+    os.environ["GDAL_DATA"] = str(gdal_data)
+
+proj_data = env_root / "Library" / "share" / "proj"
+if proj_data.exists():
+    os.environ["PROJ_LIB"] = str(proj_data)
+
+# Import after environment variables are set
 from beratools.gui.bt_gui_main import runner
-
 
 def gui_main():
     runner()

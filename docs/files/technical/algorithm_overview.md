@@ -27,3 +27,6 @@ BERA Tools processes line mapping in a staged pipeline:
   - [Canopy Footprint (Absolute)](algorithms/canopy_footprint_absolute.md)
   - [Canopy Footprint (Relative)](algorithms/canopy_footprint_relative.md)
   - [Ground Footprint](algorithms/ground_footprint.md)
+- PC2Products (LiDAR) tools:
+  - [PC2Products Tool Overview](pc2products_overview.md)
+  - [How the PC2Products Tools Run](tool_behaviour.md)

@@ -43,6 +43,7 @@ repo_name: BERA Tools
 edit_uri: edit/main/docs/files/
 
 markdown_extensions:
+  - admonition
   - attr_list
   - def_list
   - pymdownx.tasklist:
@@ -80,6 +81,17 @@ nav:
       - user/canopy_footprint_abs.md
       - user/canopy_footprint_rel.md
       - user/ground_footprint.md
+    - PC2Products (LiDAR) Tools:
+      - user/las_info.md
+      - user/cellsize.md
+      - user/gnd_csf.md
+      - user/dtm.md
+      - user/normalize.md
+      - user/chm_dsm.md
+      - user/hummock_hollow.md
+      - user/surface_water.md
+      - user/dtw.md
+      - user/seismic_line_analysis.md
   - Developer Guide:
     - developer_guide.md
     - developer/contributing.md
@@ -94,6 +106,8 @@ nav:
   - Technical Guide:
     - technical_guide.md
     - technical/algorithm_overview.md
+    - technical/pc2products_overview.md
+    - technical/tool_behaviour.md
     - Architecture:
       - technical/architecture/system_overview.md
       - technical/architecture/execution_pipeline.md
@@ -112,6 +126,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          paths: [..]                    # read beratools from the repo root, no install needed
           options:
             # --- Docstring parsing ---
             docstring_style: google

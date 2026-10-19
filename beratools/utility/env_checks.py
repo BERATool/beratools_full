@@ -51,3 +51,24 @@ def warn_gdal_proj_env() -> None:
     warning_message = get_gdal_proj_env_warning()
     if warning_message:
         warnings.warn(warning_message)
+
+def configure_gdal_proj_environment():
+    """Set GDAL_DATA and PROJ_LIB for Conda environments."""
+
+    prefix = Path(sys.prefix)
+
+    if sys.platform.startswith("win"):
+        gdal_data = prefix / "Library" / "share" / "gdal"
+        proj_data = prefix / "Library" / "share" / "proj"
+    else:
+        gdal_data = prefix / "share" / "gdal"
+        proj_data = prefix / "share" / "proj"
+
+    if not os.environ.get("GDAL_DATA") and gdal_data.exists():
+        os.environ["GDAL_DATA"] = str(gdal_data)
+
+    if not os.environ.get("PROJ_LIB") and proj_data.exists():
+        os.environ["PROJ_LIB"] = str(proj_data)
+
+    print(f"GDAL_DATA = {os.environ.get('GDAL_DATA')}")
+    print(f"PROJ_LIB  = {os.environ.get('PROJ_LIB')}")

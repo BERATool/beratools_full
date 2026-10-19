@@ -27,7 +27,7 @@ When writing code, follow [PEP8](https://peps.python.org/pep-0008/) (style guide
 Ruff is recommended for linting. `pyproject.toml` has configuration for Ruff. Ruff can be run directly via the command line from the root of the project:
 
 ``` bash
-ruff .
+ruff check .
 ```
 
 MyPy is used for static type checking. Type hints should be added to functions and methods where appropriate.
@@ -37,3 +37,16 @@ Mypy can be run with:
 ``` bash
 mypy .
 ```
+
+## R Code
+
+The processing for every PC2Products tool lives in `beratools/tools/r_scripts_collection.r`.
+
+- Keep one R function per algorithm variant (for example `dtm_by_tin`, `dtm_by_knnidw`,
+  `dtm_by_kriging`), and call it from the tool's Python wrapper.
+- Take the worker count as an argument from Python (`r_common.r_processes`) rather than detecting
+  cores in R.
+- Use the shared helpers (`detect_normalized`, `detect_ground_classified`, `mosaic_catalog_outputs`)
+  instead of copying their logic.
+- List every R package a function needs in the wrapper's `check_r_packages_installation` call, and
+  add new packages to the R package table on the installation page.
