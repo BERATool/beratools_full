@@ -47,3 +47,9 @@ rpy_surface_water(in_ortho="ortho.tif", in_training="training.gpkg|training",
 bt surface_water   # show the parameters
 bt surface_water --in_ortho ortho.tif --in_training "training.gpkg|training" --in_chm chm.tif --out_folder <out_dir>
 ```
+
+## Reference
+
+Chan, Dabros & McDermid (2026),
+[*Microtopographic and Hydrological Response to Repeated Seismic Line Disturbance in a Boreal Fen of
+Northern Alberta, Canada*](https://doi.org/10.3390/f17040489), *Forests* 17, 489.

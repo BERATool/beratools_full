@@ -1505,7 +1505,7 @@
           "tool_type": "python",
           "tool_api": "rpy_surface_water",
           "icon": "",
-          "tech_link": "https://doi.org/10.3390/f17040489",
+          "tech_link": "https://beratool.github.io/beratools/user/surface_water/",
           "parameters": [
             {
               "variable": "in_ortho",
@@ -1610,7 +1610,7 @@
           "tool_type": "python",
           "tool_api": "rpy_dtw",
           "icon": "",
-          "tech_link": "https://doi.org/10.3390/f17040489",
+          "tech_link": "https://beratool.github.io/beratools/user/dtw/",
           "parameters": [
             {
               "variable": "in_dtm",
@@ -1717,7 +1717,7 @@
           "tool_type": "python",
           "tool_api": "rpy_seismic_line_analysis",
           "icon": "",
-          "tech_link": "https://doi.org/10.3390/f17040489",
+          "tech_link": "https://beratool.github.io/beratools/user/seismic_line_analysis/",
           "parameters": [
             {
               "variable": "in_segments",

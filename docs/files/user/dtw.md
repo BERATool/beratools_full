@@ -51,3 +51,9 @@ rpy_dtw(in_dtm="dtm.tif", in_water="surface_water/surface_water.tif",
 bt dtw   # show the parameters
 bt dtw --in_dtm dtm.tif --in_water surface_water.tif --out_folder <out_dir> --kriging_cell_size 1
 ```
+
+## Reference
+
+Chan, Dabros & McDermid (2026),
+[*Microtopographic and Hydrological Response to Repeated Seismic Line Disturbance in a Boreal Fen of
+Northern Alberta, Canada*](https://doi.org/10.3390/f17040489), *Forests* 17, 489.
