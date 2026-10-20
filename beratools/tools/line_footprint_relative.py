@@ -53,7 +53,45 @@ def line_footprint_relative(
     call_mode,
     log_level,
 ):
+    """Create canopy footprint polygons using per-line relative canopy thresholds.
 
+    Runs in two steps. First, `main_canopy_threshold_relative` samples the CHM on
+    both sides of each input line and derives an individual canopy threshold
+    height from the surrounding forest. Second, `main_line_footprint_relative`
+    builds a canopy and cost raster per line and traces a least cost corridor
+    to produce the footprint polygons and, optionally, centerlines. Results are
+    written to `out_footprint` and `out_centerline`; if the threshold step
+    fails, an error is printed and nothing is written.
+
+    Numeric arguments may be passed as strings (as they are from the GUI) and
+    are converted before use.
+
+    Args:
+        in_line: Input line file.
+        in_chm: CHM raster used to calculate the surrounding forest percentile
+            and to build the canopy and cost rasters.
+        max_ln_width: Maximum processing width for input lines. A large value
+            increases processing time; a small value may clip the footprint.
+        exp_shk_cell: Cell range used to expand and shrink the corridor before
+            polygons are generated, to remove small artifacts. Use 0 when the
+            cell size is 1 m or larger.
+        out_footprint: Output footprint polygon file.
+        out_centerline: Optional output centerline file.
+        off_ln_dist: Offset distance from input lines. Currently not used.
+        canopy_percentile: Nth percentile of the surrounding forest height.
+        canopy_thresh_percentage: Percentage of the canopy percentile height
+            used as the canopy threshold.
+        tree_radius: Radius of canopy influence in the cost raster. Smooths the
+            canopy so gaps in sparse vegetation are not taken as footprint.
+        max_line_dist: Maximum euclidean distance from canopy, a second
+            smoothing factor that centers the line in the footprint.
+        canopy_avoidance: Weight between tree search radius (near 0) and
+            euclidean distance (near 1) in the cost raster.
+        exponent: Exponent applied to the cost of vegetated areas.
+        processes: Number of parallel processes.
+        call_mode: How the tool was invoked (see `CallMode`).
+        log_level: Logging level. Currently not used.
+    """
     verbose = True if call_mode == CallMode.GUI.value else False
 
     dy_cl_line = main_canopy_threshold_relative(
