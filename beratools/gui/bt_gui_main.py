@@ -124,8 +124,6 @@ class BTTreeView(QtWidgets.QWidget):
         if bt.recent_tool:
             index = self.get_tool_index(bt.recent_tool)
         if index is None or not index.isValid():
-            index = self.get_tool_index("Centerline")
-        if index is None or not index.isValid():
             # index_set = self.tree_model.index(0, 0)
             index = self.tree_model.indexFromItem(first_child)
 
@@ -381,7 +379,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_about_bera_tools = None
         self._create_help_menu()
         self.tool_api = None
-        self.tool_name = "Centerline"
+        self.tool_name = bt.tools_list[0] if bt.tools_list else None
         self.recent_tool = bt.recent_tool if bt.recent_tool in bt.tools_list else None
         if self.recent_tool:
             self.tool_name = self.recent_tool
@@ -441,13 +439,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_tabs.tabBar().setAcceptDrops(True)
         self.left_tabs.tabBar().setChangeCurrentOnDrag(True)
 
-        # left layout
+        # left and right sides are in splitters, which keep their sizes when the content changes
+        # (e.g. selecting a pipeline step) and let the user resize them
         page_layout = QtWidgets.QHBoxLayout()
-        self.left_layout = QtWidgets.QVBoxLayout()
+        self.left_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.left_splitter.setChildrenCollapsible(False)
         self.right_layout = QtWidgets.QVBoxLayout()
+        self.right_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.left_layout.addWidget(tree_box)
-        self.left_layout.addWidget(self.left_tabs)
+        self.left_splitter.addWidget(tree_box)
+        self.left_splitter.addWidget(self.left_tabs)
 
         # top buttons
         label = QtWidgets.QLabel(f"{self.tool_name}")
@@ -525,8 +526,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_layout.addLayout(progress_layout)
 
         # main layouts
-        page_layout.addLayout(self.left_layout, 3)
-        page_layout.addLayout(self.right_layout, 7)
+        right_widget = QtWidgets.QWidget()
+        right_widget.setLayout(self.right_layout)
+        self.page_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.page_splitter.setChildrenCollapsible(False)
+        self.page_splitter.addWidget(self.left_splitter)
+        self.page_splitter.addWidget(right_widget)
+        self.page_splitter.setStretchFactor(0, 3)
+        self.page_splitter.setStretchFactor(1, 7)
+        self.page_splitter.setSizes([300, 700])  # scaled to the window when shown
+        page_layout.addWidget(self.page_splitter)
 
         # signals and slots
         self.btn_advanced.clicked.connect(self.show_advanced)

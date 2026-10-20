@@ -83,6 +83,7 @@ nav:
       - user/canopy_footprint_rel.md
       - user/ground_footprint.md
       - user/footprint_plots.md
+
     - PC2Products (LiDAR) Tools:
       - user/las_info.md
       - user/cellsize.md

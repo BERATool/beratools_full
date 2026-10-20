@@ -211,10 +211,12 @@ def _resolve_tool_function(tool_api: str):
         from beratools.tools.ground_footprint import ground_footprint
 
         return ground_footprint
+
     if tool_api == "footprint_plots":
         from beratools.tools.footprint_plots import footprint_plots
 
         return footprint_plots
+
     if tool_api == "rpy_dtm_by":
         from beratools.tools.rpy_dtm_by import rpy_dtm
 
