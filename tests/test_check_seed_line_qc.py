@@ -280,7 +280,7 @@ def test_qc_report_overlap_detects_shared_segments():
     assert overlap_records[0]["line_id"] != overlap_records[0]["line_id_2"]
 
 
-def test_check_seed_line_qc_report_updates_manifest_and_prints_summary(tmp_path, monkeypatch, caplog):
+def test_check_seed_line_qc_report_updates_manifest_and_prints_summary(tmp_path, monkeypatch, capsys):
     in_gpkg = _write_seed_input(tmp_path, [LineString([(0.0, 0.0), (10.0, 0.0)])])
     out_gpkg = tmp_path / "seed_output.gpkg"
 
@@ -329,7 +329,7 @@ def test_check_seed_line_qc_report_updates_manifest_and_prints_summary(tmp_path,
         apply_seed_line_correction=False,
     )
 
-    output = caplog.text
+    output = capsys.readouterr().out
     assert "QC Report Summary:" in output
     assert "Overlapping lines:" in output
 
@@ -1165,7 +1165,7 @@ def test_check_seed_line_bails_empty_after_skipped_steps(tmp_path, monkeypatch):
     assert output_count == 0
 
 
-def test_check_seed_line_prints_step_status_for_disabled_options(tmp_path, monkeypatch, caplog):
+def test_check_seed_line_prints_step_status_for_disabled_options(tmp_path, monkeypatch, capsys):
     in_gpkg = _write_seed_input(tmp_path, [LineString([(0.0, 0.0), (10.0, 0.0)])])
     out_gpkg = tmp_path / "seed_output.gpkg"
 
@@ -1186,7 +1186,7 @@ def test_check_seed_line_prints_step_status_for_disabled_options(tmp_path, monke
         apply_seed_line_correction=False,
     )
 
-    output = caplog.text
+    output = capsys.readouterr().out
     assert "✓ Normalize multiline seed lines" in output
     assert "✓ Geometry cleanup" in output
     assert "↷ Clip to CHM footprint" in output

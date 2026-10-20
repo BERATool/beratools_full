@@ -87,6 +87,28 @@ class ToolWidgets(QtWidgets.QWidget):
 
         return args
 
+    def get_widgets_values(self):
+        """Return the current values, including empty ones, without checking for missing arguments."""
+        values = {}
+        for widget in self.widget_list:
+            value = widget.get_value() if widget else None
+            if isinstance(value, dict):
+                values.update(value)
+        return values
+
+    def connect_value_changed(self, callback):
+        """Call callback whenever any parameter value changes."""
+        for widget in self.widget_list:
+            if isinstance(widget, BooleanInput):
+                widget.checkbox.stateChanged.connect(callback)
+            elif isinstance(widget, OptionsInput):
+                widget.combobox.currentIndexChanged.connect(callback)
+            elif isinstance(widget, NumericInput) and widget.data_input is not None:
+                widget.data_input.valueChanged.connect(callback)
+            elif isinstance(widget, FileSelector):
+                widget.in_file.textChanged.connect(callback)
+                widget.layer_combo.currentTextChanged.connect(callback)
+
     def create_widgets(self, tool_args):
         valid_types = {"number", "file", "list", "text", "directory"}
         for p in tool_args:
@@ -492,6 +514,10 @@ class FileSelector(QtWidgets.QWidget):
         self.gpkg_layers = None
         self.output = params["output"]
         self.parameter_type = params["parameter_type"]
+
+        self.is_directory = False
+        if isinstance(self.parameter_type, dict):
+            self.is_directory = "Directory" in self.parameter_type
 
         self.file_type = ""
         if "ExistingFile" in self.parameter_type:
@@ -901,6 +927,17 @@ class FileSelector(QtWidgets.QWidget):
             return type_val
 
         try:
+            if self.is_directory:
+                start_dir, _ = self._resolve_dialog_start_directory(self.in_file.text())
+                folder = QtWidgets.QFileDialog.getExistingDirectory(
+                    self,
+                    "Select Folder",
+                    str(start_dir)
+                )
+                if folder:
+                    self.set_value(folder)
+                    self._save_last_browse_dir(folder)
+                return
             file_types = self.get_file_filters()
             dialog = self.setup_file_dialog(file_types)
             file_names = None
@@ -915,6 +952,18 @@ class FileSelector(QtWidgets.QWidget):
         except Exception as e:
             print(e)
             print("[Error] Could not find the selected file.")
+    def select_directory(self):
+        if self.is_directory:
+            start_dir, _ = self._resolve_dialog_start_directory(self.in_file.text())
+            folder = QtWidgets.QFileDialog.getExistingDirectory(
+                self,
+                "Select Folder",
+                str(start_dir)
+            )
+            if folder:
+                self.set_value(folder)
+                self._save_last_browse_dir(folder)
+            return
 
     def _unique_layer_name(self, base_name):
         """Return a layer name that does not conflict with existing layers in self.gpkg_layers."""
@@ -1012,6 +1061,11 @@ class FileSelector(QtWidgets.QWidget):
         self.update_combo_visibility()
 
     def set_value(self, value):
+        if self.is_directory:
+            self.value = value
+            self.in_file.setText(value)
+            self.in_file.setToolTip(value)
+            return
         # Accept both string and dict for compatibility
         if self.is_vector:
             if isinstance(value, dict):
@@ -1071,6 +1125,9 @@ class FileSelector(QtWidgets.QWidget):
         self._update_layer_overwrite_warning()
 
     def get_value(self):
+        #Return the folder directly:
+        if self.is_directory:
+            return {self.variable: self.value}
         # For vector, encode from dict for compatibility
         if self.is_vector:
             path = self.value.get("path", "")

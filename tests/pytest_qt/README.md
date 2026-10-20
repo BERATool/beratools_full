@@ -53,6 +53,8 @@ python -m pytest tests/pytest_qt/test_tool_forms.py::TestCenterline::test_round_
 | `test_tool_widgets.py` | Widget-level tests: NumericInput/BooleanInput/OptionsInput/FileSelector, dialog interaction, layer-combo behavior, signal payloads, keyboard input |
 | `test_main_window.py` | MainWindow interaction tests: button clicks, tree/search, keyboard search, process signals, error/edge UI paths, slider behavior, tool history/persistence |
 | `test_tool_forms.py` | Per-tool form construction and `get_widgets_arguments()` round-trip checks across tool configs |
+| `test_r_tool_forms.py` | One class per PC2Products (rpy_*) tool: form construction, `get_widgets_arguments()` round trips, and `BTData.validate_tool_params()` type conversion and rejection of invalid values |
+| `test_pipeline_panel.py` | The Pipeline tab: dragging tools in, linking steps, reordering, editing a step in the tool form, saving/loading and running the steps |
 
 ## Test Files (Brief)
 
@@ -60,6 +62,8 @@ python -m pytest tests/pytest_qt/test_tool_forms.py::TestCenterline::test_round_
 - `tests/pytest_qt/test_tool_widgets.py`: focused widget behavior and signal tests, including FileSelector browse/cancel/vector-layer cases.
 - `tests/pytest_qt/test_main_window.py`: end-user interaction flows on `MainWindow` (run/cancel/exit/help/defaults/advanced), process and progress behavior, slider, and persistence.
 - `tests/pytest_qt/test_tool_forms.py`: tool-form smoke/round-trip coverage for configured BERA tools.
+- `tests/pytest_qt/test_r_tool_forms.py`: form and validation round trips for the ten PC2Products tools. Input folders use the sample tiles in `tests/data/LiDAR/`; surface water, depth-to-water and seismic line tests build their inputs with `tests/synthetic_data.py`.
+- `tests/pytest_qt/test_pipeline_panel.py`: Pipeline tab behavior, with tool runs patched out.
 
 ## Notes
 

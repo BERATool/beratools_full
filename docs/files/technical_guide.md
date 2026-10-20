@@ -12,9 +12,13 @@ This section documents **how BERA Tools works internally**.
 - **Execution pipeline**: input handling to output generation
 - **Tool runtime model**: CLI/GUI call modes, argument composition, multiprocessing
 - **Algorithms**: per-tool method summaries, assumptions, edge cases
+- **PC2Products (LiDAR) tools**: the Python wrappers, the R functions they call, how R is located,
+  and how the tools run
 
 ## Reading order
 
 1. [Algorithm Overview](technical/algorithm_overview.md)
 2. Architecture pages
 3. Per-tool algorithm pages
+4. [PC2Products Tool Overview](technical/pc2products_overview.md) and
+   [How the PC2Products Tools Run](technical/tool_behaviour.md)

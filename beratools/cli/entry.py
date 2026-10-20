@@ -17,6 +17,16 @@ TOOL_ALIASES = {
     "footprint_abs": "canopy_footprint_absolute",
     "footprint_rel": "line_footprint_relative",
     "footprint_grd": "ground_footprint",
+    "dtm": "rpy_dtm_by",
+    "normalize": "rpy_normalized_PC",
+    "chm_dsm": "rpy_CHM_DSM_by",
+    "las_info": "rpy_las_info",
+    "cellsize": "rpy_find_cellsize",
+    "hh": "rpy_PC2hummock_hollow",
+    "gnd_csf": "rpy_gnd_csf",
+    "surface_water": "rpy_surface_water",
+    "dtw": "rpy_dtw",
+    "line_analysis": "rpy_seismic_line_analysis",
 }
 
 
@@ -195,12 +205,53 @@ def _resolve_tool_function(tool_api: str):
         from beratools.tools.ground_footprint import ground_footprint
 
         return ground_footprint
+    if tool_api == "rpy_dtm_by":
+        from beratools.tools.rpy_dtm_by import rpy_dtm
+
+        return rpy_dtm
+    if tool_api == "rpy_normalized_PC":
+        from beratools.tools.rpy_normalized_PC import rpy_normalized_PC
+
+        return rpy_normalized_PC
+    if tool_api == "rpy_CHM_DSM_by":
+        from beratools.tools.rpy_CHM_DSM_by import rpy_chm_dsm_by
+
+        return rpy_chm_dsm_by
+    if tool_api == "rpy_las_info":
+        from beratools.tools.rpy_las_info import rpy_las_info
+
+        return rpy_las_info
+    if tool_api == "rpy_find_cellsize":
+        from beratools.tools.rpy_find_cellsize import rpy_find_cellsize
+
+        return rpy_find_cellsize
+    if tool_api == "rpy_PC2hummock_hollow":
+        from beratools.tools.rpy_PC2hummock_hollow import rpy_hh2raster
+
+        return rpy_hh2raster
+    if tool_api == "rpy_gnd_csf":
+        from beratools.tools.rpy_gnd_csf import rpy_gnd_csf
+
+        return rpy_gnd_csf
+    if tool_api == "rpy_surface_water":
+        from beratools.tools.rpy_surface_water import rpy_surface_water
+
+        return rpy_surface_water
+    if tool_api == "rpy_dtw":
+        from beratools.tools.rpy_dtw import rpy_dtw
+
+        return rpy_dtw
+    if tool_api == "rpy_seismic_line_analysis":
+        from beratools.tools.rpy_seismic_line_analysis import rpy_seismic_line_analysis
+
+        return rpy_seismic_line_analysis
     raise ValueError(f"Unsupported tool_api: {tool_api}")
 
 
 def run_tool_command(args: argparse.Namespace) -> int:
     from beratools.utility import env_checks
 
+    env_checks.configure_gdal_proj_environment()
     env_checks.warn_gdal_proj_env()
 
     tool_api = args.tool_api

@@ -29,7 +29,8 @@ concurrency:
 jobs:
   integration:
     name: Pixi integration
-    timeout-minutes: 20
+    # R packages for the PC2Products tools come prebuilt from conda-forge on linux-64 (see pixi.toml)
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,3 +48,14 @@ jobs:
 
       - name: Run integration tests
         run: pixi run pytest --cov=beratools --cov-report=term tests/test_workflow.py --maxfail=1 --disable-warnings -s -v --log-cli-level=INFO
+
+      - name: Install Ubuntu dependencies for R
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudunits2-dev libgdal-dev libgeos-dev libproj-dev libgl1-mesa-dev libglu1-mesa-dev
+
+      - name: Run R environment test (installs missing R packages into the pixi R)
+        run: pixi run pytest tests/test_r_environment.py --maxfail=1 --disable-warnings -v --log-cli-level=INFO
+
+      - name: Run PC2Products workflow test
+        run: pixi run pytest --cov=beratools --cov-report=term tests/test_r_workflow.py --maxfail=1 --disable-warnings -v --log-cli-level=INFO

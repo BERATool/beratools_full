@@ -29,3 +29,10 @@ _build
 .aider.*
 .ignore
 /docs/site
+
+# PC2Products tool outputs from the LiDAR tests
+tests/data/LiDAR/Raster_Output/
+tests/data/LiDAR/Classified_PC/
+tests/data/LiDAR/Normalized_PC/
+# Hydra run logs from examples/full_workflow.py
+outputs/

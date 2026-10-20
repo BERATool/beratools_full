@@ -17,7 +17,7 @@ class _DummyLineGrouping:
         return self._line_gdf
 
 
-def _run_ground_footprint_until_prepare_line_args(monkeypatch, line_crs):
+def _run_ground_footprint_until_prepare_line_args(monkeypatch, tmp_path, line_crs):
     captured = {}
 
     line_gdf = gpd.GeoDataFrame(
@@ -61,7 +61,7 @@ def _run_ground_footprint_until_prepare_line_args(monkeypatch, line_crs):
             n_samples=10,
             offset=10.0,
             max_width=True,
-            out_footprint="out.gpkg|ground",
+            out_footprint=f"{tmp_path / 'out.gpkg'}|ground",
             merge_group=True,
             trim_output=False,
         )
@@ -69,12 +69,12 @@ def _run_ground_footprint_until_prepare_line_args(monkeypatch, line_crs):
     return captured
 
 
-def test_ground_footprint_converts_perpendicular_length_meters_to_native(monkeypatch):
-    captured = _run_ground_footprint_until_prepare_line_args(monkeypatch, "EPSG:2263")
+def test_ground_footprint_converts_perpendicular_length_meters_to_native(monkeypatch, tmp_path):
+    captured = _run_ground_footprint_until_prepare_line_args(monkeypatch, tmp_path, "EPSG:2263")
     assert captured["offset"] == pytest.approx(32.8083333333, rel=1e-6)
 
 
-def test_ground_footprint_rejects_geographic_crs_for_meter_length(monkeypatch):
+def test_ground_footprint_rejects_geographic_crs_for_meter_length(monkeypatch, tmp_path):
     line_gdf = gpd.GeoDataFrame(
         {"BT_GROUP": [1]},
         geometry=[LineString([(0.0, 0.0), (0.01, 0.0)])],
@@ -91,13 +91,13 @@ def test_ground_footprint_rejects_geographic_crs_for_meter_length(monkeypatch):
             n_samples=10,
             offset=10.0,
             max_width=True,
-            out_footprint="out.gpkg|ground",
+            out_footprint=f"{tmp_path / 'out.gpkg'}|ground",
             merge_group=True,
             trim_output=False,
         )
 
 
-def test_ground_footprint_stops_when_line_and_footprint_do_not_overlap(monkeypatch):
+def test_ground_footprint_stops_when_line_and_footprint_do_not_overlap(monkeypatch, tmp_path):
     line_gdf = gpd.GeoDataFrame(
         {"BT_GROUP": [1]},
         geometry=[LineString([(0.0, 0.0), (1.0, 0.0)])],
@@ -139,7 +139,7 @@ def test_ground_footprint_stops_when_line_and_footprint_do_not_overlap(monkeypat
         n_samples=10,
         offset=10.0,
         max_width=True,
-        out_footprint="out.gpkg|ground",
+        out_footprint=f"{tmp_path / 'out.gpkg'}|ground",
         merge_group=True,
         trim_output=False,
     )
@@ -148,7 +148,7 @@ def test_ground_footprint_stops_when_line_and_footprint_do_not_overlap(monkeypat
     assert called["prepare"] == 0
 
 
-def test_ground_footprint_stops_on_extent_precheck_without_loading_features(monkeypatch):
+def test_ground_footprint_stops_on_extent_precheck_without_loading_features(monkeypatch, tmp_path):
     monkeypatch.setattr(gf.sp_common, "check_vector_vector_extent_overlap", lambda *_args, **_kwargs: False)
 
     called = {"read": 0}
@@ -165,7 +165,7 @@ def test_ground_footprint_stops_on_extent_precheck_without_loading_features(monk
         n_samples=10,
         offset=10.0,
         max_width=True,
-        out_footprint="out.gpkg|ground",
+        out_footprint=f"{tmp_path / 'out.gpkg'}|ground",
         merge_group=True,
         trim_output=False,
     )

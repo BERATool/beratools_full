@@ -16,6 +16,16 @@ This page remains as a reference pointer for historical links and the sample `to
 - optional multiprocessing through `execute_multiprocessing`
 - separation of lightweight tool wrappers from heavy core logic
 
+## PC2Products (R) tools
+
+`beratools/tools/rpy_find_cellsize.py` is the smallest complete PC2Products tool. It shows:
+
+- calling `configure_r_environment()` before importing `r_common`
+- checking the inputs and installing the R packages the tool needs
+- converting `processes` to an R worker count with `r_common.r_processes`
+- sourcing `r_scripts_collection.r` and calling an R function from `robjects.globalenv`
+- metadata-driven argument composition via `compose_tool_kwargs`
+
 ## Where to place content
 
 - Put contributor step-by-step instructions in `developer/add_new_tool.md`

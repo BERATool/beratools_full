@@ -51,6 +51,49 @@ Install with Anaconda works on Windows, macOS, and Linux.
 
 For more information about installation, check the [BERA Tools Installation](https://beratool.github.io/beratools/user/installation/).
 
+## PC2Products (LiDAR) Tools
+
+The **PC2Products** (Point Cloud to Products) category turns LiDAR point clouds (`.las` / `.laz`) into
+rasters such as a DTM, DSM, CHM and hummock/hollow maps. The tools run R and
+[lidR](https://r-lidar.github.io/lidRbook/) through [rpy2](https://rpy2.github.io/); `environment.yml`
+and `pixi.toml` include R, and the tools install the R packages they need the first time they run
+(see [R for the PC2Products tools](https://beratool.github.io/beratools/user/installation/#r-for-the-pc2products-lidar-tools)).
+
+| Tool | `bt` subcommand |
+|------|-----------------|
+| [LiDAR data info](https://beratool.github.io/beratools/user/las_info/) | `las_info` |
+| [Raster Cell size from LiDAR data](https://beratool.github.io/beratools/user/cellsize/) | `cellsize` |
+| [Ground Classify Using CSF](https://beratool.github.io/beratools/user/gnd_csf/) | `gnd_csf` |
+| [Generate DTM from LiDAR Data](https://beratool.github.io/beratools/user/dtm/) | `dtm` |
+| [Normalize LiDAR Data](https://beratool.github.io/beratools/user/normalize/) | `normalize` |
+| [Generate CHM or DSM from LiDAR Data](https://beratool.github.io/beratools/user/chm_dsm/) | `chm_dsm` |
+| [Detect Hummock and Hollow from LiDAR Data](https://beratool.github.io/beratools/user/hummock_hollow/) | `hh` |
+| [Surface Water Mapping](https://beratool.github.io/beratools/user/surface_water/) | `surface_water` |
+| [Depth-to-Water from Surface Water](https://beratool.github.io/beratools/user/dtw/) | `dtw` |
+| [Seismic Line Disturbance Analysis](https://beratool.github.io/beratools/user/seismic_line_analysis/) | `line_analysis` |
+
+```bash
+$ beratools dtm --in_las_folder tests/data/LiDAR --out_folder tests/data/LiDAR/Raster_Output --style tin
+```
+
+Sample tiles are in `tests/data/LiDAR/`, and `examples/` has two scripts that run the LiDAR tools in
+sequence (see [examples/README.md](examples/README.md)).
+
+## Pipelines
+
+The **Pipeline** tab, next to **Tool history** in the GUI, chains tools into steps that run one after
+another. Drag tools in from the tool tree, set each step's parameters in the tool form, and link a
+step's inputs to an earlier step's output. Each input links to the latest earlier step that makes what
+it needs, for example a CHM from **Generate CHM or DSM from LiDAR Data** into **Centerline**, and the
+links are reset whenever a step is added, moved or removed. Pipelines save as `.json` files and also
+run without the GUI:
+
+```bash
+$ python -m beratools.core.pipeline my_pipeline.json --processes 4
+```
+
+See [Building a pipeline](https://beratool.github.io/beratools/user_guide/#building-a-pipeline).
+
 ## BERA Tools Guide
 
 Check the online [BERA Tools Guide](https://beratool.github.io/beratools/) for user, developer and technical guides.

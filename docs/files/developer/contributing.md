@@ -39,6 +39,7 @@ We appreciate your help in making BERA Tools better! If you encounter a issue or
 
 2. When submitting a new issue, include as much detail as possible:
     - BERA Tools version
+    - R version (`R --version`), for issues with the PC2Products (LiDAR) tools
     - Operating system
     - Python version
     - Any error messages from the console

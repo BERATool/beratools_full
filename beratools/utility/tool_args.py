@@ -40,6 +40,8 @@ def compose_tool_kwargs(tool_api):
 
     bt_data = BTData()
     tool_name = bt_data.get_bera_tool_name(tool_api)
+    if tool_name is None:
+        raise ValueError(f"Tool API '{tool_api}' not found in beratools.json")
     tool_api_name = tool_api
 
     mode_parser = argparse.ArgumentParser(add_help=False)

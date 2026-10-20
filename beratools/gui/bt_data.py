@@ -749,7 +749,10 @@ class BTData(object):
     def _set_param_type_for_output(self, single_param, param):
         # Assume subtype is already a list
         subtypes = param["subtype"]
-        single_param["parameter_type"] = {"NewFile": subtypes}
+        if param["type"] == "directory":
+            single_param["parameter_type"] = {"Directory": subtypes}
+        else:
+            single_param["parameter_type"] = {"NewFile": subtypes}
 
     def _find_tool_params(self, tool_name):
         """
@@ -810,6 +813,9 @@ class BTData(object):
     def _validate_number(self, value, param_def):
         """Validate and convert numeric types (int, float)."""
         subtype = param_def.get("subtype", "")
+        if isinstance(subtype, list):
+            subtype = subtype[0] if subtype else ""
+        subtype = str(subtype).strip().lower()
         variable = param_def.get("variable", "unknown")
 
         if subtype == "int":
@@ -914,6 +920,9 @@ class BTData(object):
     def _validate_list(self, value, param_def):
         """Validate list parameter with allowed values and type conversion."""
         subtype = param_def.get("subtype", "")
+        if isinstance(subtype, list):
+            subtype = subtype[0] if subtype else ""
+        subtype = str(subtype).strip().lower()
         variable = param_def.get("variable", "unknown")
         allowed_values = param_def.get("data", [])
 

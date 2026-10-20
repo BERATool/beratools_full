@@ -25,6 +25,16 @@ ALL_TOOL_NAMES = [
     "Canopy Footprint (Relative Threshold)",
     "Ground Footprint",
     "Feature Buffer",
+    "Generate DTM from LiDAR Data",
+    "Generate CHM or DSM from LiDAR Data",
+    "LiDAR data info",
+    "Raster Cell size from LiDAR data",
+    "Detect Hummock and Hollow from LiDAR Data",
+    "Ground Classify Using CSF",
+    "Normalize LiDAR Data",
+    "Surface Water Mapping",
+    "Depth-to-Water from Surface Water",
+    "Seismic Line Disturbance Analysis",
 ]
 
 
@@ -300,7 +310,7 @@ class TestTreeView:
 
     def test_category_count(self, main_window):
         model = main_window.tree_view.tree_model
-        assert model.rowCount() == 2  # Mapping + Templates
+        assert model.rowCount() == 3  # Mapping + PC2Products + Templates
 
     def test_tool_count(self, main_window):
         model = main_window.tree_view.tree_model
@@ -308,7 +318,7 @@ class TestTreeView:
         for row in range(model.rowCount()):
             parent = model.item(row)
             total += parent.rowCount()
-        assert total == 7
+        assert total == len(ALL_TOOL_NAMES)
 
     @pytest.mark.parametrize("tool_name", ALL_TOOL_NAMES)
     def test_select_tool_by_name(self, main_window, qtbot, tool_name):
@@ -534,6 +544,23 @@ class TestProcessSignals:
         assert main_window.process is None
         assert main_window.progress_bar.value() == 0
         assert main_window.progress_label.text() == ""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "R_PROGRESS:80\r\n",
+            # lidR's progress bar clears itself with spaces and carriage returns, without a newline
+            "          \r\r                    \rR_PROGRESS:80\r\n",
+        ],
+    )
+    def test_r_progress_line_sets_progress_and_is_not_logged(self, main_window, line):
+        main_window.clear_log_messages()
+        main_window.progress_bar.setValue(0)
+
+        main_window.custom_callback(line)
+
+        assert main_window.progress_bar.value() == 80
+        assert "R_PROGRESS" not in main_window.text_edit.toPlainText()
 
 
 class TestToolHistoryPersistence:

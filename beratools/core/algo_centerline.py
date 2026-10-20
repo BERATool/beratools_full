@@ -238,11 +238,15 @@ def snap_end_to_end(in_line, line_reference, max_snap_dist=None,cid=None):
         forward = False
 
     if forward:
-        coords[0] = seed_start.coords[0]
-        coords[-1] = seed_end.coords[0]
+        snap_start, snap_end = seed_start, seed_end
     else:
-        coords[0] = seed_end.coords[0]
-        coords[-1] = seed_start.coords[0]
+        snap_start, snap_end = seed_end, seed_start
+
+    # Only snap ends within max_snap_dist of their target
+    if max_snap_dist is None or cl_start.distance(snap_start) <= max_snap_dist:
+        coords[0] = snap_start.coords[0]
+    if max_snap_dist is None or cl_end.distance(snap_end) <= max_snap_dist:
+        coords[-1] = snap_end.coords[0]
     #
     # Safety check
     #

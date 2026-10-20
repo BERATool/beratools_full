@@ -80,6 +80,7 @@ This keeps CLI behavior aligned with GUI metadata while preserving a concise com
 beratools list-tools
 beratools centerline --help
 beratools check_line --in_line seed_lines.gpkg --out_line qc_lines.gpkg --processes 4
+beratools dtm --in_las_folder tests/data/LiDAR --out_folder tests/data/LiDAR/Raster_Output --style tin --processes 4
 ```
 
 ## Multiprocessing model
@@ -94,10 +95,35 @@ Key behavior:
 - Fall back to sequential mode when one process is used
 - Keep progress/log behavior consistent with `call_mode`
 
+## PC2Products (R) tools
+
+The PC2Products LiDAR tools (`rpy_*.py`) expose a function shaped like:
+
+```python
+def rpy_tool_name(in_las_folder, out_folder, ..., processes=0, **kwargs)
+```
+
+`processes` is shared with the other tools; `call_mode` and `log_level` arrive through `**kwargs`.
+Each module calls `configure_r_environment()` before it imports rpy2, so that R can be found (see
+[How R is located](../tool_behaviour.md#how-r-is-located)).
+
+These tools do their parallel work in R, not in Python:
+
+- `r_common.r_processes(processes)` turns the requested `processes` into an R worker count. `0` or
+  less means every CPU core; the count is capped at the number of cores, at 8, and by available memory.
+- The R function runs `future::plan(multisession, workers = rprocesses)` and processes the
+  `LAScatalog` tile by tile.
+- The R output streams to the console, or to the GUI log when the GUI runs the tool. Lines of the
+  form `R_PROGRESS:<percent>` drive the GUI progress bar.
+
+See [How all the tools behave](../tool_behaviour.md#how-all-the-tools-behave) for the details.
+
 ## Separation of concerns
 
 - `beratools/tools/*`: input wiring and dispatch
 - `beratools/core/*`: heavy processing and algorithm implementation
+- `beratools/tools/r_scripts_collection.r`: the processing for the PC2Products tools, with lidR, terra
+  and the other R packages
 
 This structure keeps tool wrappers small and makes algorithm logic easier to test and maintain.
 

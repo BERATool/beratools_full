@@ -60,6 +60,60 @@ pip install "gdal @ https://github.com/cgohlke/geospatial-wheels/releases/downlo
 pip install beratools
 ```
 
+## R for the PC2Products (LiDAR) tools
+
+The PC2Products tools (the `rpy_*` tools in the **PC2Products** category) run R through
+[rpy2](https://rpy2.github.io/). The other tools don't need R.
+
+- **conda** and **pixi**: `environment.yml` and `pixi.toml` already include `r-base` 4.5.x and rpy2.
+- **pip**: install R 4.5 yourself, then install the `r` extra:
+
+    ```bash
+    pip install "beratools[r]"
+    ```
+
+On the R side the environments contain only R and rpy2. Every R package comes from CRAN, installed by
+the tools into the environment's R the first time they need it (see
+[How all the tools behave](../technical/tool_behaviour.md#how-all-the-tools-behave)).
+
+R is held at 4.5.x because conda-forge builds rpy2 for R 4.5 on Linux only, and for nothing newer
+than R 4.4 on Windows, which is why rpy2 comes from PyPI on Windows. On Windows, CRAN provides
+prebuilt packages for R 4.5. On Linux, CRAN packages such as `sf` and `terra` are compiled from
+source, which needs the GDAL, GEOS, PROJ and udunits development libraries (for example
+`libgdal-dev libgeos-dev libproj-dev libudunits2-dev` on Ubuntu) and takes a while on the first run;
+`pixi.toml` takes prebuilt conda-forge builds of them on `linux-64` instead.
+
+To install every R package up front and confirm that they load, run the R environment test from a
+source checkout:
+
+```bash
+python -m pytest tests/test_r_environment.py -v
+```
+
+The tools install these R packages the first time they need them:
+
+| R package | Purpose |
+|-----------|---------|
+| `lidR` | LAScatalog processing, `rasterize_terrain`, `rasterize_canopy` |
+| `rlas` | Reading LAS/LAZ files |
+| `future` | Parallel processing of catalogs |
+| `terra` | Raster output and mosaicking |
+| `sf`, `units` | CRS, area and map-unit reporting |
+| `RCSF` | Cloth Simulation Filter for ground classification |
+| `gstat` | Kriging interpolation (DTM and water table) |
+| `sp`, `raster`, `stars` | Spatial and raster support |
+| `ggplot2` | Plots from Seismic Line Disturbance Analysis |
+| `rpart` | Decision tree in Surface Water Mapping |
+
+!!! note "Windows"
+    Run the tools from an *activated* environment. If you call the environment's `python.exe`
+    directly without activating it, GDAL can fail to load its DLLs.
+
+!!! note "Windows: rpy2 and Git Bash"
+    Run the PC2Products tools and the R tests from **PowerShell or cmd, not Git Bash**. Under Git
+    Bash, rpy2 crashes while locating R (`IndexError` in `rpy2/situation`), because Git Bash's `sh`
+    makes `R CMD config` return empty output instead of failing.
+
 ## Verify Installation
 
 After installation, verify that BERA Tools is installed correctly:
