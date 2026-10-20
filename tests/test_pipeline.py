@@ -169,7 +169,30 @@ def test_tool_command_stringifies_args():
     assert cmd[3:] == ["-p", "4", "-c", "CLI", "-l", "INFO"]
 
 
-def test_run_pipeline_runs_steps_in_order_and_stops_on_failure(monkeypatch):
+def test_missing_inputs_skips_linked_and_output_paths(tmp_path):
+    csf, dtm = _steps()
+    assert pipeline.missing_inputs([csf, dtm]) == ["Step 1: Input LiDAR point cloud folder not found: las"]
+
+    csf["args"]["in_las_folder"] = tmp_path.as_posix()
+    assert pipeline.missing_inputs([csf, dtm]) == []
+
+    seismic = pipeline.new_step(
+        "rpy_seismic_line_analysis", {"in_segments": f"{(tmp_path / 'gone.gpkg').as_posix()}|segments"}
+    )
+    assert pipeline.missing_inputs([seismic]) == [
+        f"Step 1: Segment polygons not found: {(tmp_path / 'gone.gpkg').as_posix()}"
+    ]
+
+
+def test_run_pipeline_refuses_missing_inputs(monkeypatch):
+    monkeypatch.setattr(pipeline.subprocess, "run", lambda *a, **k: pytest.fail("a step was run"))
+    with pytest.raises(ValueError, match="not found: las"):
+        pipeline.run_pipeline(_steps())
+
+
+def test_run_pipeline_runs_steps_in_order_and_stops_on_failure(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "las").mkdir()
     calls = []
 
     def fake_run(cmd, env=None):

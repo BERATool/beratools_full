@@ -756,6 +756,40 @@ class TestToolWidgetsAdvancedVisibility:
         in_widget = next(w for w in tw.widget_list if w.variable == "in_line")
         out_widget = next(w for w in tw.widget_list if w.variable == "out_line")
 
-        assert in_widget.value["path"] == ""
+        # the missing input is kept and flagged; the output with the same path is cleared
+        assert in_widget.value["path"] == missing
+        assert in_widget.missing_input_error
         assert out_widget.value["path"] == ""
         assert out_widget.value["layer"] == ""
+
+    def test_missing_input_is_kept_flagged_and_blocks_run(self, qtbot, tmp_path):
+        missing = str(tmp_path / "gone.tif")
+        tool_args = [
+            {
+                "name": "Input raster",
+                "description": "Input raster",
+                "variable": "in_raster",
+                "parameter_type": {"ExistingFile": ["raster"]},
+                "optional": False,
+                "default_value": "",
+                "saved_value": missing,
+                "output": False,
+            },
+        ]
+
+        tw = ToolWidgets("Missing input", tool_args, show_advanced=True)
+        qtbot.addWidget(tw)
+        widget = tw.widget_list[0]
+
+        assert widget.in_file.text() == missing
+        assert "not found" in widget.in_file.toolTip()
+        assert widget.in_file.styleSheet()
+        assert tw.get_widgets_arguments() is None
+
+        # pointing it at a file that exists clears the flag
+        existing = tmp_path / "here.tif"
+        existing.write_bytes(b"")
+        widget.in_file.setText(str(existing))
+        assert widget.missing_input_error == ""
+        assert widget.in_file.styleSheet() == ""
+        assert tw.get_widgets_arguments() == {"in_raster": str(existing)}

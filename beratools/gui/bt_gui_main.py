@@ -853,7 +853,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def run_pipeline(self):
         steps = self.pipeline_panel.steps
-        errors = pipeline.validate_pipeline(steps)
+        errors = pipeline.validate_pipeline(steps) + pipeline.missing_inputs(steps)
         if errors:
             QtWidgets.QMessageBox.warning(self, "Pipeline", "\n".join(errors))
             return

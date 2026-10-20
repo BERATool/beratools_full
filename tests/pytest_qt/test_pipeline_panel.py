@@ -200,6 +200,18 @@ def test_invalid_pipeline_is_not_run(main_window, panel):
     mock_launch.assert_not_called()
 
 
+def test_pipeline_with_missing_input_is_not_run(main_window, panel, tmp_path):
+    panel.add_tool(CSF)
+    missing = (tmp_path / "gone").as_posix()
+    panel.steps[0]["args"].update(in_las_folder=missing, out_folder=(tmp_path / "out").as_posix())
+
+    with patch("PyQt5.QtWidgets.QMessageBox.warning") as mock_warning, \
+            patch.object(main_window, "_launch_tool") as mock_launch:
+        main_window.run_pipeline()
+    assert f"Step 1: Input LiDAR point cloud folder not found: {missing}" in mock_warning.call_args[0][2]
+    mock_launch.assert_not_called()
+
+
 def _finish(main_window, exit_code):
     process = MagicMock()
     process.readAllStandardOutput.return_value = b""
@@ -210,10 +222,10 @@ def _finish(main_window, exit_code):
     main_window.process_finished()
 
 
-def test_pipeline_runs_steps_in_order(main_window, panel, qtbot):
+def test_pipeline_runs_steps_in_order(main_window, panel, qtbot, tmp_path):
     panel.add_tool(CSF)
     panel.add_tool(DTM)
-    panel.steps[0]["args"].update(in_las_folder="D:/las", out_folder="D:/classified")
+    panel.steps[0]["args"].update(in_las_folder=tmp_path.as_posix(), out_folder="D:/classified")
     panel.steps[1]["args"]["out_folder"] = "D:/rasters"
 
     with patch.object(main_window, "_launch_tool") as mock_launch:
@@ -251,7 +263,7 @@ def test_pipeline_stops_when_a_step_fails(main_window, panel):
 def test_pipeline_stops_when_linked_file_is_missing(main_window, panel, qtbot, tmp_path):
     panel.add_tool(DTM)
     panel.add_tool("Depth-to-Water from Surface Water")
-    panel.steps[0]["args"].update(in_las_folder="D:/las", out_folder=(tmp_path / "empty").as_posix())
+    panel.steps[0]["args"].update(in_las_folder=tmp_path.as_posix(), out_folder=(tmp_path / "empty").as_posix())
 
     with patch.object(main_window, "_launch_tool") as mock_launch:
         main_window.run_pipeline()
