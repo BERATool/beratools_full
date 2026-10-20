@@ -127,7 +127,18 @@ class PipelinePanel(QtWidgets.QWidget):
         layout.addWidget(self.list_widget)
         layout.addWidget(self.links_box)
         layout.addWidget(self.btn_run)
-        self.setLayout(layout)
+
+        # scroll the content when it doesn't fit, rather than resizing the panel
+        content = QtWidgets.QWidget()
+        content.setLayout(layout)
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll_area.setWidget(content)
+        outer_layout = QtWidgets.QVBoxLayout()
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(scroll_area)
+        self.setLayout(outer_layout)
 
         self.list_widget.tool_dropped.connect(self.add_tool)
         self.list_widget.step_moved.connect(self.move_step)
@@ -206,6 +217,9 @@ class PipelinePanel(QtWidgets.QWidget):
         self.links_box.setVisible(bool(inputs))
         for variable, kind in inputs.items():
             combo = QtWidgets.QComboBox()
+            # don't widen the panel to fit long step names
+            combo.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(10)
             combo.addItem("Its own value", None)
             for earlier in pipeline.link_sources(self.steps[:row], kind):
                 n = pipeline.step_index(self.steps, earlier["id"]) + 1
