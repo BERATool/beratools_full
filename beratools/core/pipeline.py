@@ -128,6 +128,27 @@ def validate_pipeline(steps):
     return errors
 
 
+def missing_inputs(steps):
+    """Return a problem for each input file or folder a step reads that doesn't exist.
+
+    Linked inputs are skipped, since an earlier step writes them while the pipeline runs.
+    """
+    errors = []
+    for n, step in enumerate(steps, 1):
+        for p in _tool_params().get(step["tool_api"], []):
+            variable = p.get("variable")
+            if p.get("type") not in ("file", "directory") or p.get("output") or variable in step["links"]:
+                continue
+            value = step["args"].get(variable)
+            if not value or not isinstance(value, str):
+                continue
+            path = value.rsplit("|", 1)[0]  # vector inputs are stored as path|layer
+            if not Path(path).exists():
+                label = p.get("label", variable).rstrip(".")
+                errors.append(f"Step {n}: {label} not found: {path}")
+    return errors
+
+
 def describe_link(steps, step, variable):
     """What a linked input will read, e.g. 'D:/rasters/Merged_*_DTM.tif', for showing in the GUI."""
     source = steps[step_index(steps, step["links"][variable])]
@@ -201,7 +222,7 @@ def tool_command(tool_api, args, processes, call_mode="CLI"):
 
 
 def run_pipeline(steps, processes=0):
-    errors = validate_pipeline(steps)
+    errors = validate_pipeline(steps) + missing_inputs(steps)
     if errors:
         raise ValueError("\n".join(errors))
 

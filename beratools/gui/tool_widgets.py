@@ -75,6 +75,10 @@ class ToolWidgets(QtWidgets.QWidget):
         args = {}
         param_missing = False
         for widget in self.widget_list:
+            if getattr(widget, "missing_input_error", ""):
+                print(f"[Missing input]: {widget.name}: {widget.missing_input_error}")
+                param_missing = True
+                continue
             v = widget.get_value()
             if v:
                 args.update(v)
@@ -166,6 +170,8 @@ class ToolWidgets(QtWidgets.QWidget):
 
             # hide optional widgets
             if widget:
+                # parent now so showing a dependent widget doesn't open it as its own window
+                widget.setParent(self)
                 widget.setMinimumHeight(BT_WIDGET_MIN_HEIGHT)
                 self._set_widget_tooltip(widget)
                 widget.depends_on = p.get("depends_on")
@@ -201,10 +207,8 @@ class ToolWidgets(QtWidgets.QWidget):
         for widget in self.widget_list:
             if not isinstance(widget, FileSelector) or widget.output:
                 continue
-            saved_path = self._extract_file_selector_path(widget.saved_value)
-            current_path = widget.value.get("path", "") if widget.is_vector else widget.value
-            if saved_path and not current_path:
-                missing_input_paths.add(saved_path)
+            if widget.missing_input_error:
+                missing_input_paths.add(self._extract_file_selector_path(widget.value))
 
         if not missing_input_paths:
             return
@@ -537,6 +541,7 @@ class FileSelector(QtWidgets.QWidget):
         self.saved_value = params.get("saved_value", None)
         self.is_vector = self.has_vector_subtype(self.parameter_type)
         self.input_geometry_error = ""
+        self.missing_input_error = ""
         self.filtered_gpkg_layers = OrderedDict()
 
     def initialize_values(self):
@@ -562,21 +567,12 @@ class FileSelector(QtWidgets.QWidget):
         ext = Path(path).suffix.lower().replace(".", "")
         if ext not in self.VECTOR_FORMATS:
             return
-        gpkg_path = Path(path)
-        dir_exists = gpkg_path.parent.exists()
-        file_exists = gpkg_path.exists()
         if self.output:
             # Output: preserve path/layer even if file doesn't exist
             pass
         else:
-            # Input: validate file/directory existence
-            if not file_exists:
-                self.value = {"path": "", "layer": ""}
-                print(f"[Error] Invalid Input: File does not exist: {path}")
-                return
-            elif not dir_exists:
-                self.value = {"path": "", "layer": ""}
-                print(f"[Error] Invalid Input: Directory does not exist for file: {path}")
+            # Input: keep a saved file that no longer exists; it is flagged in the form
+            if not Path(path).exists():
                 return
             elif ext == "gpkg":
                 try:
@@ -680,6 +676,25 @@ class FileSelector(QtWidgets.QWidget):
         self.input_geometry_error = ""
         self.in_file.setStyleSheet("")
         self.in_file.setToolTip(self.description)
+
+    def _update_missing_input_warning(self):
+        """Flag an input path that doesn't exist, keeping it so it can be seen and fixed."""
+        path = self.value.get("path", "") if self.is_vector else self.value
+        was_missing = bool(self.missing_input_error)
+        if path and isinstance(path, str) and not self.output and not Path(path).exists():
+            kind = "Folder" if self.is_directory else "File"
+            self.missing_input_error = f"{kind} not found: {path}"
+            self.in_file.setStyleSheet("QLineEdit { background-color: #f8d7da; }")
+            self.in_file.setToolTip(self.missing_input_error)
+            return
+
+        self.missing_input_error = ""
+        if was_missing:
+            if self.input_geometry_error:
+                self.in_file.setToolTip(self.input_geometry_error)
+            else:
+                self.in_file.setStyleSheet("")
+                self.in_file.setToolTip(path or self.description)
 
     def _set_no_compatible_layer_placeholder(self):
         self.layer_combo.clear()
@@ -797,9 +812,11 @@ class FileSelector(QtWidgets.QWidget):
                 self._on_vector_path_changed(self.value, self.output, selected_layer)
             else:
                 self._reset_layer_state(clear_cache=True, visible=False, editable=False)
+        self._update_missing_input_warning()
         self.adjustSize()
         if self.parentWidget():
-            self.parentWidget().layout().invalidate()
+            if self.parentWidget().layout() is not None:
+                self.parentWidget().layout().invalidate()
             self.parentWidget().adjustSize()
             self.parentWidget().update()
 
@@ -1065,6 +1082,7 @@ class FileSelector(QtWidgets.QWidget):
             self.value = value
             self.in_file.setText(value)
             self.in_file.setToolTip(value)
+            self._update_missing_input_warning()
             return
         # Accept both string and dict for compatibility
         if self.is_vector:
@@ -1076,12 +1094,9 @@ class FileSelector(QtWidgets.QWidget):
                     self.value = {"path": path, "layer": layer}
                 else:
                     self.value = {"path": value, "layer": ""}
-            # For input, clear if file does not exist; for output, clear if parent folder does not exist
-            if self.value["path"]:
-                if not self.output and not Path(self.value["path"]).exists():
-                    self.value = {"path": "", "layer": ""}
-                elif self.output and not Path(self.value["path"]).parent.exists():
-                    self.value = {"path": "", "layer": ""}
+            # Output: clear if parent folder does not exist (a missing input is kept and flagged)
+            if self.value["path"] and self.output and not Path(self.value["path"]).parent.exists():
+                self.value = {"path": "", "layer": ""}
             self.in_file.setText(self.value["path"])
             self.in_file.setToolTip(self.value["path"])
         else:
@@ -1094,12 +1109,9 @@ class FileSelector(QtWidgets.QWidget):
                             value = f"{base_name}.txt"
                 elif value.endswith("."):
                     value = base_name
-                # For input, clear if file does not exist; for output, clear if parent folder does not exist
-                if value:
-                    if not self.output and not Path(value).exists():
-                        value = ""
-                    elif self.output and not Path(value).parent.exists():
-                        value = ""
+                # Output: clear if parent folder does not exist (a missing input is kept and flagged)
+                if value and self.output and not Path(value).parent.exists():
+                    value = ""
                 self.value = value
                 self.in_file.setText(self.value)
                 self.in_file.setToolTip(self.value)
@@ -1257,7 +1269,6 @@ class NumericInput(QtWidgets.QWidget):
         self.label.setMinimumWidth(BT_LABEL_MIN_WIDTH)
         self.data_input = None
         self.unit_label = QtWidgets.QLabel(self.unit)
-        self.unit_label.setVisible(bool(self.unit))
         subtypes = []
         if isinstance(self.parameter_type, list):
             subtypes = self.parameter_type
@@ -1300,6 +1311,8 @@ class NumericInput(QtWidgets.QWidget):
         self.data_input.setToolTip(self.description)
         self.unit_label.setToolTip(self.description)
         self.setLayout(self.layout)
+        # after setLayout, so a parentless label isn't shown as its own window
+        self.unit_label.setVisible(bool(self.unit))
 
     def set_inline_mode(self, unit=""):
         self.label.setVisible(False)
