@@ -124,6 +124,8 @@ class BTTreeView(QtWidgets.QWidget):
         if bt.recent_tool:
             index = self.get_tool_index(bt.recent_tool)
         if index is None or not index.isValid():
+            index = self.get_tool_index("Centerline")
+        if index is None or not index.isValid():
             # index_set = self.tree_model.index(0, 0)
             index = self.tree_model.indexFromItem(first_child)
 
@@ -379,7 +381,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_about_bera_tools = None
         self._create_help_menu()
         self.tool_api = None
-        self.tool_name = bt.tools_list[0] if bt.tools_list else None
+        if "Centerline" in bt.tools_list:
+            self.tool_name = "Centerline"
+        else:
+            self.tool_name = bt.tools_list[0] if bt.tools_list else None
         self.recent_tool = bt.recent_tool if bt.recent_tool in bt.tools_list else None
         if self.recent_tool:
             self.tool_name = self.recent_tool
