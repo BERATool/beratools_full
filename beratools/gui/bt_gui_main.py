@@ -682,8 +682,8 @@ class MainWindow(QtWidgets.QMainWindow):
         git_revision = version_info.get("git_revision") or "n/a"
 
         about_text = (
-            "BERA Tools\n"
-            "Applied Geospatial Research Group (AppliedGRG)\n\n"
+            "BERA Tools\n\n"
+            "Developed by:\n\n Applied Geospatial Research Group (AppliedGRG)\n\n"
             "A suite of geospatial analysis tools for research and operations.\n\n"
             f"Version: {version_info.get('version', 'unknown')}\n"
             f"Git Revision: {git_revision}\n"
