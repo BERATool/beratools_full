@@ -16,6 +16,7 @@ Description:
 import json
 import sys
 from collections import OrderedDict
+from datetime import datetime
 from pathlib import Path
 
 import pyogrio
@@ -109,6 +110,10 @@ class ToolWidgets(QtWidgets.QWidget):
                 widget.combobox.currentIndexChanged.connect(callback)
             elif isinstance(widget, NumericInput) and widget.data_input is not None:
                 widget.data_input.valueChanged.connect(callback)
+            elif isinstance(widget, TextInput):
+                widget.line_edit.textChanged.connect(callback)
+            elif isinstance(widget, FieldSelector):
+                widget.combobox.currentTextChanged.connect(callback)
             elif isinstance(widget, FileSelector):
                 widget.in_file.textChanged.connect(callback)
                 widget.layer_combo.currentTextChanged.connect(callback)
@@ -126,10 +131,10 @@ class ToolWidgets(QtWidgets.QWidget):
             pt = p["parameter_type"]
             widget = None
 
-            if "ExistingFile" in pt or "NewFile" in pt or "Directory" in pt:
+            if pt == "Text":
+                widget = FieldSelector(json_str) if p.get("field_of") else TextInput(json_str)
+            elif "ExistingFile" in pt or "NewFile" in pt or "Directory" in pt:
                 widget = FileSelector(json_str, None, bt_data_obj=self.bt_data)
-            elif "FileList" in pt:
-                widget = MultiFileSelector(json_str, None)
             elif "Boolean" in pt:
                 widget = BooleanInput(json_str)
             elif "OptionList" in pt:
@@ -188,8 +193,19 @@ class ToolWidgets(QtWidgets.QWidget):
 
             self.widget_list.append(widget)
 
+        self._bind_field_selectors()
         self._configure_widget_dependencies()
         self._clear_output_paths_for_missing_input_history()
+
+    def _bind_field_selectors(self):
+        for widget in self.widget_list:
+            if not isinstance(widget, FieldSelector):
+                continue
+            source = self.widgets_by_variable.get(widget.field_of)
+            if isinstance(source, FileSelector):
+                widget.bind_source(source)
+            else:
+                print(f"[Warning] Field list for '{widget.variable}' needs file input '{widget.field_of}'.")
 
     @staticmethod
     def _extract_file_selector_path(value):
@@ -396,6 +412,16 @@ class ToolWidgets(QtWidgets.QWidget):
                 widget.data_input.valueChanged.connect(callback)
                 widget._depends_on_signal_connected = True
                 return
+
+        if isinstance(widget, TextInput):
+            widget.line_edit.textChanged.connect(callback)
+            widget._depends_on_signal_connected = True
+            return
+
+        if isinstance(widget, FieldSelector):
+            widget.combobox.currentTextChanged.connect(callback)
+            widget._depends_on_signal_connected = True
+            return
 
         if isinstance(widget, FileSelector):
             widget.in_file.textChanged.connect(callback)
@@ -1247,6 +1273,200 @@ class OptionsInput(QtWidgets.QWidget):
 
     def get_value(self):
         return {self.variable: self.value}
+
+
+class TextInput(QtWidgets.QWidget):
+    """TextInput class for creating free text widgets, such as field names."""
+
+    def __init__(self, json_str, parent=None):
+        super(TextInput, self).__init__(parent)
+        params = json.loads(json_str)
+        self.name = params["name"]
+        self.description = params["description"]
+        self.variable = params["variable"]
+        self.parameter_type = params["parameter_type"]
+        self.optional = params["optional"]
+        self.default_value = "" if params["default_value"] is None else str(params["default_value"])
+        self.value = self.default_value
+        if "saved_value" in params.keys():
+            self.value = str(params["saved_value"])
+
+        self.label = QtWidgets.QLabel(self.name)
+        self.label.setMinimumWidth(BT_LABEL_MIN_WIDTH)
+        self.line_edit = QtWidgets.QLineEdit(self.value)
+        self.line_edit.textChanged.connect(self.update_value)
+        self.label.setToolTip(self.description)
+        self.line_edit.setToolTip(self.description)
+
+        self.layout = QtWidgets.QHBoxLayout()
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.line_edit)
+        self.setLayout(self.layout)
+
+    def set_inline_mode(self, unit=""):
+        self.label.setVisible(False)
+        self.label.setMinimumWidth(0)
+        self.label.setMaximumWidth(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+    def update_value(self, text):
+        self.value = text
+
+    def set_value(self, value):
+        self.line_edit.setText("" if value is None else str(value))
+
+    def set_default_value(self):
+        self.line_edit.setText(self.default_value)
+
+    def get_value(self):
+        return {self.variable: self.value.strip()}
+
+
+class FieldSelector(QtWidgets.QWidget):
+    """FieldSelector class for choosing a field of the vector layer picked in another parameter."""
+
+    WARNING_STYLE = "QComboBox { background-color: #fff3cd; }"
+    ERROR_STYLE = "QComboBox { background-color: #f8d7da; }"
+
+    def __init__(self, json_str, parent=None):
+        super(FieldSelector, self).__init__(parent)
+        params = json.loads(json_str)
+        self.name = params["name"]
+        self.description = params["description"]
+        self.variable = params["variable"]
+        self.parameter_type = params["parameter_type"]
+        self.optional = params["optional"]
+        self.field_of = params["field_of"]
+        self.field_check = params.get("field_check", "")
+        self.default_value = "" if params["default_value"] is None else str(params["default_value"])
+        self.value = self.default_value
+        if "saved_value" in params.keys():
+            self.value = str(params["saved_value"])
+        self.source = None
+        self.fields = []
+        self.missing_input_error = ""
+        self._year_checks = {}
+
+        self.label = QtWidgets.QLabel(self.name)
+        self.label.setMinimumWidth(BT_LABEL_MIN_WIDTH)
+        self.combobox = QtWidgets.QComboBox()
+        self.combobox.setEditable(True)
+        self.combobox.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+        self.combobox.setMinimumWidth(BT_NUMERIC_BOX_WIDTH)
+        self.combobox.setEditText(self.value)
+        self.combobox.currentTextChanged.connect(self.update_value)
+        self.status = QtWidgets.QLabel()
+        self.status.setWordWrap(True)
+        self.status.setVisible(False)
+        self.label.setToolTip(self.description)
+        self.combobox.setToolTip(self.description)
+
+        self.layout = QtWidgets.QHBoxLayout()
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.combobox)
+        self.layout.addWidget(self.status, 1)
+        self.setLayout(self.layout)
+
+    def set_inline_mode(self, unit=""):
+        self.label.setVisible(False)
+        self.label.setMinimumWidth(0)
+        self.label.setMaximumWidth(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+    def bind_source(self, source):
+        """List the fields of the layer chosen in `source`, a FileSelector, and follow its changes."""
+        self.source = source
+        source.in_file.textChanged.connect(self.refresh_fields)
+        source.layer_combo.currentTextChanged.connect(self.refresh_fields)
+        self.refresh_fields()
+
+    def _source_path_layer(self):
+        if self.source is None:
+            return "", None
+        encoded = self.source.get_value().get(self.source.variable, "")
+        if not isinstance(encoded, str) or not encoded:
+            return "", None
+        path, _, layer = encoded.partition("|")
+        return path, layer or None
+
+    def refresh_fields(self, *_):
+        path, layer = self._source_path_layer()
+        fields = []
+        if path and Path(path).is_file():
+            try:
+                fields = [str(field) for field in pyogrio.read_info(path, layer=layer)["fields"]]
+            except Exception as e:
+                print(f"[Error] Could not read fields from {path}: {e}")
+        self.fields = fields
+
+        current = self.value
+        self.combobox.blockSignals(True)
+        self.combobox.clear()
+        self.combobox.addItems(fields)
+        index = self.combobox.findText(current)
+        if index >= 0:
+            self.combobox.setCurrentIndex(index)
+        else:
+            self.combobox.setEditText(current)
+        self.combobox.blockSignals(False)
+        self.check_field()
+
+    def check_field(self):
+        """Flag a field missing from the layer, or (for year fields) one without usable years."""
+        error, warning = "", ""
+        field = self.value.strip()
+        if self.fields:
+            if not field:
+                if not self.optional:
+                    error = "Select a field."
+            elif field not in self.fields:
+                error = f"Field '{field}' is not in the layer."
+            elif self.field_check == "year":
+                error, warning = self._check_year_field(field)
+        self._show_status(error, warning)
+
+    def _check_year_field(self, field):
+        from beratools.core.algo_seismic_line_recovery import check_year_values
+
+        path, layer = self._source_path_layer()
+        key = (path, layer, field)
+        if key not in self._year_checks:
+            try:
+                table = pyogrio.read_dataframe(path, layer=layer, columns=[field], read_geometry=False)
+                error, warning = check_year_values(table[field], datetime.now().year)
+                error = f"Field '{field}' {error}." if error else ""
+                warning = f"Field '{field}': {warning}." if warning else ""
+            except Exception as e:
+                error, warning = f"Could not read field '{field}': {e}", ""
+            self._year_checks[key] = (error, warning)
+        return self._year_checks[key]
+
+    def _show_status(self, error, warning):
+        self.missing_input_error = error
+        message = error or warning
+        self.combobox.setStyleSheet(self.ERROR_STYLE if error else self.WARNING_STYLE if warning else "")
+        self.combobox.setToolTip(message or self.description)
+        self.status.setText(message)
+        self.status.setVisible(bool(message))
+
+    def update_value(self, text):
+        self.value = text
+        self.check_field()
+
+    def set_value(self, value):
+        text = "" if value is None else str(value)
+        index = self.combobox.findText(text)
+        if index >= 0:
+            self.combobox.setCurrentIndex(index)
+        else:
+            self.combobox.setEditText(text)
+        self.update_value(text)
+
+    def set_default_value(self):
+        self.set_value(self.default_value)
+
+    def get_value(self):
+        return {self.variable: self.value.strip()}
 
 
 class NumericInput(QtWidgets.QWidget):

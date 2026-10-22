@@ -37,6 +37,28 @@ At minimum, define:
 `tool_api` must match the module name and the string passed to `compose_tool_kwargs`, or the tool
 stops with `Tool API '<name>' not found in beratools.json`.
 
+### Field parameters
+
+A `text` parameter that names a field of a vector input can show that layer's fields in a
+drop-down. Add `field_of` with the `variable` of the vector input; add `"field_check": "year"` to
+also check that the field holds years:
+
+```json
+{
+  "variable": "year_field",
+  "field_of": "in_line",
+  "field_check": "year",
+  "type": "text",
+  "subtype": "string",
+  ...
+}
+```
+
+The list refreshes when the input file or layer changes, and a name can still be typed. A field that
+isn't in the layer, or a year field with no years between 1900 and the current year, blocks **Run**;
+a year field with some empty or invalid values shows a warning. The command line still takes the
+field as text.
+
 ### Taking part in pipelines
 
 Every registered `python` tool can be a step in a GUI pipeline. To let its inputs be linked to an

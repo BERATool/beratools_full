@@ -1058,6 +1058,9 @@ class BTData(object):
                     single_param["depends_on"] = param["depends_on"]
                 if "unit" in param:
                     single_param["unit"] = param["unit"]
+                for key in ("field_of", "field_check"):
+                    if key in param:
+                        single_param[key] = param[key]
 
                 single_param["default_value"] = param["default"]
                 single_param["optional"] = param.get("optional", False)

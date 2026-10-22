@@ -35,6 +35,7 @@ ALL_TOOL_NAMES = [
     "Surface Water Mapping",
     "Depth-to-Water from Surface Water",
     "Seismic Line Disturbance Analysis",
+    "Seismic Line Recovery Predictor",
 ]
 
 
@@ -310,7 +311,7 @@ class TestTreeView:
 
     def test_category_count(self, main_window):
         model = main_window.tree_view.tree_model
-        assert model.rowCount() == 3  # Mapping + PC2Products + Templates
+        assert model.rowCount() == 4  # Mapping + PC2Products + Restoration + Templates
 
     def test_tool_count(self, main_window):
         model = main_window.tree_view.tree_model

@@ -27,6 +27,7 @@ TOOL_ALIASES = {
     "surface_water": "rpy_surface_water",
     "dtw": "rpy_dtw",
     "line_analysis": "rpy_seismic_line_analysis",
+    "line_recovery": "seismic_line_recovery",
 }
 
 
@@ -245,6 +246,10 @@ def _resolve_tool_function(tool_api: str):
         from beratools.tools.rpy_seismic_line_analysis import rpy_seismic_line_analysis
 
         return rpy_seismic_line_analysis
+    if tool_api == "seismic_line_recovery":
+        from beratools.tools.seismic_line_recovery import seismic_line_recovery
+
+        return seismic_line_recovery
     raise ValueError(f"Unsupported tool_api: {tool_api}")
 
 

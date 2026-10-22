@@ -1787,6 +1787,315 @@
       ]
     },
     {
+      "category": "Restoration",
+      "description": "Tools used to assess and predict the recovery of linear disturbances in forests.",
+      "tools": [
+        {
+          "name": "Seismic Line Recovery Predictor",
+          "info": "Predict passive recovery of seismic lines from regeneration lags and site index growth curves by forest type (Sutheimer et al. 2024, Restoration Ecology, doi:10.1111/rec.14353). Heights and recovery classes are indicative growth-curve estimates, not for prioritising restoration.",
+          "tool_type": "python",
+          "tool_api": "seismic_line_recovery",
+          "icon": "",
+          "tech_link": "https://beratool.github.io/beratools/user/seismic_line_recovery/",
+          "parameters": [
+            {
+              "variable": "in_line",
+              "accepts": "line",
+              "label": "Seismic Lines",
+              "description": "Seismic line layer in a projected coordinate system (metres).",
+              "type": "file",
+              "subtype": "vector|line",
+              "default": "",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "year_field",
+              "field_of": "in_line",
+              "field_check": "year",
+              "label": "Disturbance Year Field",
+              "description": "Field on the seismic lines with the year each line was cut.",
+              "type": "text",
+              "subtype": "string",
+              "default": "YEAR",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "in_forest_type",
+              "label": "Forest Type Layer",
+              "description": "Forest-type polygon layer, e.g. a vegetation inventory.",
+              "type": "file",
+              "subtype": "vector|polygon",
+              "default": "",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "forest_type_field",
+              "field_of": "in_forest_type",
+              "label": "Forest Type Field",
+              "description": "Field on the forest-type layer with the inventory class mapped to the four forest types below.",
+              "type": "text",
+              "subtype": "string",
+              "default": "FOREST_TYPE",
+              "output": false,
+              "optional": false
+            },
+            {
+              "variable": "out_points",
+              "label": "Output Recovery Points",
+              "description": "Output sample points with predicted tree age, years to 3 m and 5 m, and indicative height and recovery class (growth-curve estimates; not for prioritising restoration).",
+              "type": "file",
+              "subtype": "vector",
+              "default": "",
+              "output": true,
+              "optional": false
+            },
+            {
+              "variable": "out_lines",
+              "label": "Output Recovery Lines",
+              "description": "Output seismic lines with per-line summaries; REC_CLASS and PCT_RECOV are indicative. Leave empty to skip.",
+              "type": "file",
+              "subtype": "vector",
+              "default": "",
+              "output": true,
+              "optional": true
+            },
+            {
+              "variable": "out_report",
+              "label": "Output Report (CSV)",
+              "description": "CSV with line length per forest type and indicative recovery class. Leave empty to skip.",
+              "type": "file",
+              "subtype": "csv",
+              "default": "",
+              "output": true,
+              "optional": true
+            },
+            {
+              "variable": "xeric_classes",
+              "label": "Xeric upland classes",
+              "description": "Comma-separated inventory class values treated as xeric upland forest (case is ignored).",
+              "type": "text",
+              "subtype": "string",
+              "default": "XERIC,POOR_XERIC,MEDIUM_XERIC",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "mesic_classes",
+              "label": "Mesic upland classes",
+              "description": "Comma-separated inventory class values treated as mesic upland forest (case is ignored).",
+              "type": "text",
+              "subtype": "string",
+              "default": "MESIC,MEDIUM_MESIC,MEDIUM_HYGRIC,RICH_HYGRIC",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "transitional_classes",
+              "label": "Transitional classes",
+              "description": "Comma-separated inventory class values treated as transitional forest (case is ignored).",
+              "type": "text",
+              "subtype": "string",
+              "default": "TRANSITIONAL,POOR_MESIC,SWAMP",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "peatland_classes",
+              "label": "Peatland classes",
+              "description": "Comma-separated inventory class values treated as peatland (treed wetland) forest (case is ignored). Open bogs and fens were excluded from the study.",
+              "type": "text",
+              "subtype": "string",
+              "default": "PEATLAND,TREED_WETLAND,POOR_HYDRIC,MEDIUM_HYDRIC,RICH_HYDRIC",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "lag_xeric",
+              "label": "Xeric upland lag (years)",
+              "description": "Regeneration lag for xeric upland forest. Default is the observed median of Sutheimer et al. (2024).",
+              "type": "number",
+              "subtype": "float",
+              "default": 3.0,
+              "output": false,
+              "optional": true,
+              "unit": "yr"
+            },
+            {
+              "variable": "lag_mesic",
+              "label": "Mesic upland lag (years)",
+              "description": "Regeneration lag for mesic upland forest. Default is the observed median of Sutheimer et al. (2024).",
+              "type": "number",
+              "subtype": "float",
+              "default": 5.0,
+              "output": false,
+              "optional": true,
+              "unit": "yr"
+            },
+            {
+              "variable": "lag_transitional",
+              "label": "Transitional lag (years)",
+              "description": "Regeneration lag for transitional forest. Default is the observed median of Sutheimer et al. (2024).",
+              "type": "number",
+              "subtype": "float",
+              "default": 13.0,
+              "output": false,
+              "optional": true,
+              "unit": "yr"
+            },
+            {
+              "variable": "lag_peatland",
+              "label": "Peatland lag (years)",
+              "description": "Regeneration lag for peatland forest. Default is the observed median of Sutheimer et al. (2024).",
+              "type": "number",
+              "subtype": "float",
+              "default": 8.0,
+              "output": false,
+              "optional": true,
+              "unit": "yr"
+            },
+            {
+              "variable": "current_year",
+              "label": "Prediction year",
+              "description": "Year to predict recovery for. 0 uses the current calendar year.",
+              "type": "number",
+              "subtype": "int",
+              "default": 0,
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "in_fire",
+              "label": "Wildfire Polygons",
+              "description": "Optional wildfire polygons. A fire after the line was cut resets the disturbance year.",
+              "type": "file",
+              "subtype": "vector|polygon",
+              "default": "",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "fire_year_field",
+              "field_of": "in_fire",
+              "field_check": "year",
+              "label": "Fire Year Field",
+              "description": "Field on the wildfire polygons with the fire year.",
+              "type": "text",
+              "subtype": "string",
+              "default": "YEAR",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "species_assignment",
+              "label": "Species assignment",
+              "description": "'forest_type_default' uses the most common species per forest type (jack pine, trembling aspen, black spruce, black spruce); 'dominant_species' reads the species field on each line.",
+              "type": "list",
+              "subtype": "string",
+              "data": ["forest_type_default", "dominant_species"],
+              "default": "forest_type_default",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "species_field",
+              "field_of": "in_line",
+              "label": "Species Field",
+              "description": "Field on the seismic lines with the dominant species, as a name (jack pine, trembling aspen, white spruce, black spruce, tamarack) or AVI code (Pj, Aw, Sw, Sb, Lt).",
+              "type": "text",
+              "subtype": "string",
+              "default": "",
+              "output": false,
+              "optional": true,
+              "depends_on": {
+                "variable": "species_assignment",
+                "condition": "dominant_species",
+                "mode": "hide"
+              }
+            },
+            {
+              "variable": "in_growth_table",
+              "label": "Growth coefficient table",
+              "description": "Optional CSV with columns forest_type, species, b0, b1 replacing or adding site index coefficients (H = b0 * exp(b1 / age)).",
+              "type": "file",
+              "subtype": "csv",
+              "default": "",
+              "output": false,
+              "optional": true
+            },
+            {
+              "variable": "breast_height",
+              "label": "Breast height (m)",
+              "description": "Upper height of the seedling class.",
+              "type": "number",
+              "subtype": "float",
+              "default": 1.3,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            },
+            {
+              "variable": "recovery_height",
+              "label": "Recovery height (m)",
+              "description": "Upper height of the sapling class; trees above it are on a recovery trajectory.",
+              "type": "number",
+              "subtype": "float",
+              "default": 3.0,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            },
+            {
+              "variable": "advanced_height",
+              "label": "Advanced recovery height (m)",
+              "description": "Upper height of the recovering class; trees above it are in advanced recovery.",
+              "type": "number",
+              "subtype": "float",
+              "default": 5.0,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            },
+            {
+              "variable": "max_curve_age",
+              "label": "Max growth curve age (years)",
+              "description": "Oldest age the site index curves were fitted to. Ages to reach a height beyond it are left empty.",
+              "type": "number",
+              "subtype": "int",
+              "default": 25,
+              "output": false,
+              "optional": true,
+              "unit": "yr"
+            },
+            {
+              "variable": "sample_interval",
+              "label": "Sampling interval (m)",
+              "description": "Distance between sample points along each line.",
+              "type": "number",
+              "subtype": "float",
+              "default": 20.0,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            },
+            {
+              "variable": "endpoint_buffer",
+              "label": "Endpoint buffer (m)",
+              "description": "Length skipped at each end of a line before sampling.",
+              "type": "number",
+              "subtype": "float",
+              "default": 10.0,
+              "output": false,
+              "optional": true,
+              "unit": "m"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "category": "Templates",
       "description": "Tools template.",
       "tools": [

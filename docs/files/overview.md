@@ -63,3 +63,9 @@ These tools run R and [lidR](https://r-lidar.github.io/lidRbook/) through
 | [Surface Water Mapping](user/surface_water.md) | `surface_water` | Classifies surface water from a true-colour orthomosaic. |
 | [Depth-to-Water from Surface Water](user/dtw.md) | `dtw` | Kriges a water table from surface water and computes depth to water. |
 | [Seismic Line Disturbance Analysis](user/seismic_line_analysis.md) | `line_analysis` | Compares seismic line segments with the surrounding peatland by disturbance class. |
+
+### Restoration
+
+| Tool | `bt` subcommand | Details |
+|------|-----------------|---------|
+| [Seismic Line Recovery Predictor](user/seismic_line_recovery.md) | `line_recovery` | Predicts passive tree recovery on seismic lines from regeneration lags and growth curves by forest type. |

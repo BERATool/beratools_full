@@ -92,6 +92,8 @@ nav:
       - user/surface_water.md
       - user/dtw.md
       - user/seismic_line_analysis.md
+    - Restoration Tools:
+      - user/seismic_line_recovery.md
   - Developer Guide:
     - developer_guide.md
     - developer/contributing.md

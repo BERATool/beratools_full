@@ -223,4 +223,5 @@ ALL_TOOL_NAMES = [
     "Surface Water Mapping",
     "Depth-to-Water from Surface Water",
     "Seismic Line Disturbance Analysis",
+    "Seismic Line Recovery Predictor",
 ]

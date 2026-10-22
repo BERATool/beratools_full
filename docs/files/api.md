@@ -88,6 +88,11 @@ This page documents the main Python modules in BERA Tools using mkdocstrings.
 ::: beratools.tools.rpy_dtw
 ::: beratools.tools.rpy_seismic_line_analysis
 
+## Restoration Tools API
+
+::: beratools.tools.seismic_line_recovery
+::: beratools.core.algo_seismic_line_recovery
+
 ## R Interface
 
 ::: beratools.tools.r_interface
