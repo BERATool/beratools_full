@@ -31,3 +31,4 @@ dependencies:
       # conda-forge has no win-64 rpy2 build for R 4.5, so install it from PyPI
       - rpy2
 variables:
+  {}
