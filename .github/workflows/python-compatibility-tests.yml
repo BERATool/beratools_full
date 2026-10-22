@@ -36,6 +36,7 @@ jobs:
             dask
             gdal>=3.12,<4
             geopandas
+            pandas>=2.0,<3.0
             networkit
             numpy>=1.26,<2.4
             pandas
