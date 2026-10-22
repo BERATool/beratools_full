@@ -51,6 +51,42 @@ Install with Anaconda works on Windows, macOS, and Linux.
 
 For more information about installation, check the [BERA Tools Installation](https://beratool.github.io/beratools/user/installation/).
 
+#### Troubleshooting: `CondaEnvException: Pip failed`
+
+`environment.yml` installs `rpy2` with pip at the end of `conda env create`. If that step fails
+(e.g. `Pip subprocess error`), create the environment without pip first, then install `rpy2` yourself:
+
+1. Open `environment.yml` and comment out the pip section:
+
+   ```yaml
+   #  - pip:
+   #      - rpy2
+   ```
+
+2. Create and activate the environment:
+
+   ```bash
+   $ conda env create -n bera -f environment.yml
+   $ conda activate bera
+   ```
+
+3. Set the R paths (Windows **Anaconda Prompt**):
+
+   ```bat
+   set "R_HOME=%CONDA_PREFIX%\Lib\R"
+   set "PATH=%R_HOME%\bin\x64;%PATH%"
+   ```
+
+4. Install `rpy2` with pip:
+
+   ```bash
+   $ python -m pip install rpy2
+   ```
+
+If pip still fails, check that the environment's Python starts with `python -c "print('ok')"`. A
+Python that does not start (e.g. "The file or directory is corrupted and unreadable") is the real
+cause. Rebuild the environment with a different Python version.
+
 ## PC2Products (LiDAR) Tools
 
 The **PC2Products** (Point Cloud to Products) category turns LiDAR point clouds (`.las` / `.laz`) into

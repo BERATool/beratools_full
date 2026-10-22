@@ -6,10 +6,11 @@ channels:
   - conda-forge
   - appliedgrg
 dependencies:
-  - python=3.12
+  - python>=3.12,<3.14
   - dask
   - gdal>=3.12,<4
   - geopandas
+  - pandas>=2.0,<3
   - networkit
   - numpy>=1.26,<2.4
   - pandas
@@ -31,3 +32,4 @@ dependencies:
       # conda-forge has no win-64 rpy2 build for R 4.5, so install it from PyPI
       - rpy2
 variables:
+  {}
