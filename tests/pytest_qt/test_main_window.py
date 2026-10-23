@@ -54,6 +54,12 @@ class TestMainWindowBasics:
         from beratools.gui import bt_gui_main
 
         monkeypatch.setattr(bt_gui_main.bt, "recent_tool", "Missing Tool")
+        # closing the window at teardown asks to confirm, which would block the test run
+        monkeypatch.setattr(
+            bt_gui_main.QtWidgets.QMessageBox,
+            "question",
+            MagicMock(return_value=QMessageBox.StandardButton.Yes),
+        )
 
         window = bt_gui_main.MainWindow()
         qtbot.addWidget(window)

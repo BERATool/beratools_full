@@ -144,6 +144,64 @@ def test_selected_step_edits_are_stored(main_window, panel):
     assert panel.steps[1]["args"]["out_folder"] == "D:/rasters"
 
 
+def test_clicking_selected_tool_leaves_step(main_window, panel):
+    main_window.set_tool(INFO)
+    panel.add_tool(CSF)
+    assert main_window.pipeline_step is panel.steps[0]
+
+    # the tool is still selected in the tree, so only the click tells the window to show it
+    tree = main_window.tree_view
+    tree.tree_item_clicked(tree.tags_model.mapFromSource(tree.get_tool_index(INFO)))
+    assert main_window.pipeline_step is None
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
+
+
+def test_clicking_history_tool_leaves_step(main_window, panel):
+    main_window.set_tool(INFO)
+    panel.add_tool(CSF)
+    assert main_window.pipeline_step is panel.steps[0]
+
+    history = main_window.tool_history
+    history.set_data_list([INFO])
+    history.item_clicked(history.list_model.index(0, 0))
+    assert main_window.pipeline_step is None
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
+
+
+def test_tool_values_kept_while_editing_steps(main_window, panel):
+    main_window.set_tool(DTM)
+    main_window.tool_widget.widgets_by_variable["out_folder"].in_file.setText("D:/my_dtm")
+    panel.add_tool(CSF)
+    main_window.tool_widget.widgets_by_variable["out_folder"].in_file.setText("D:/classified")
+
+    main_window.set_tool(DTM)
+    assert main_window.tool_widget.widgets_by_variable["out_folder"].in_file.text() == "D:/my_dtm"
+    assert panel.steps[0]["args"]["out_folder"] == "D:/classified"
+
+
+def test_switching_tabs_switches_between_tool_and_step(main_window, panel):
+    main_window.set_tool(INFO)
+    panel.add_tool(CSF)
+    panel.add_tool(DTM)
+    panel.list_widget.setCurrentRow(0)
+
+    main_window.left_tabs.setCurrentWidget(main_window.tool_history)
+    assert main_window.pipeline_step is None
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
+
+    main_window.left_tabs.setCurrentWidget(panel)
+    assert main_window.pipeline_step is panel.steps[0]
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == f"Step 1: {CSF}"
+
+
+def test_removing_last_step_shows_tool_again(main_window, panel):
+    main_window.set_tool(INFO)
+    panel.add_tool(CSF)
+    panel.remove_step()
+    assert main_window.pipeline_step is None
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
+
+
 def test_linked_raster_input_shows_file_pattern(main_window, panel):
     panel.add_tool(CSF)
     panel.add_tool(DTM)
