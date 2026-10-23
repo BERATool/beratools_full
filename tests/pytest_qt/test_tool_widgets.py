@@ -7,9 +7,10 @@ and exercised via set_value / get_value round-trips.
 """
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
+from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
 from beratools.gui.tool_widgets import ToolWidgets
@@ -793,3 +794,70 @@ class TestToolWidgetsAdvancedVisibility:
         assert widget.missing_input_error == ""
         assert widget.in_file.styleSheet() == ""
         assert tw.get_widgets_arguments() == {"in_raster": str(existing)}
+
+    def test_loading_existing_output_layer_does_not_pop_tooltip(self, qtbot, tmp_path, monkeypatch):
+        import geopandas as gpd
+        from shapely.geometry import Point
+
+        gpkg = tmp_path / "out.gpkg"
+        gpd.GeoDataFrame({"a": [1]}, geometry=[Point(0, 0)], crs=3400).to_file(gpkg, layer="existing")
+        tool_args = [
+            {
+                "name": "Output",
+                "description": "Output vector",
+                "variable": "out_line",
+                "parameter_type": {"NewFile": ["vector"]},
+                "optional": False,
+                "default_value": "",
+                "saved_value": f"{gpkg}|existing",
+                "output": True,
+            },
+        ]
+        show_text = MagicMock()
+        monkeypatch.setattr(QtWidgets.QToolTip, "showText", show_text)
+
+        tw = ToolWidgets("Overwrite warning", tool_args, show_advanced=True)
+        qtbot.addWidget(tw)
+        widget = tw.widget_list[0]
+
+        # the overwrite warning is shown on the combo, but nothing pops up while the form loads
+        assert "overwritten" in widget.layer_combo.toolTip()
+        show_text.assert_not_called()
+
+    def test_clear_missing_inputs_empties_only_missing_paths(self, qtbot, tmp_path):
+        existing = tmp_path / "here.tif"
+        existing.write_bytes(b"")
+        missing_vector = str(tmp_path / "gone.gpkg")
+        tool_args = [
+            {
+                "name": "Input raster",
+                "description": "Input raster",
+                "variable": "in_raster",
+                "parameter_type": {"ExistingFile": ["raster"]},
+                "optional": False,
+                "default_value": "",
+                "saved_value": str(existing),
+                "output": False,
+            },
+            {
+                "name": "Input line",
+                "description": "Input vector",
+                "variable": "in_line",
+                "parameter_type": {"ExistingFile": ["vector"]},
+                "optional": False,
+                "default_value": "",
+                "saved_value": f"{missing_vector}|seed_lines",
+                "output": False,
+            },
+        ]
+
+        tw = ToolWidgets("Startup history", tool_args, show_advanced=True)
+        qtbot.addWidget(tw)
+        tw.clear_missing_inputs()
+
+        raster, line = tw.widget_list
+        assert raster.in_file.text() == str(existing)
+        assert line.value == {"path": "", "layer": ""}
+        assert line.in_file.text() == ""
+        assert line.missing_input_error == ""
+        assert line.in_file.styleSheet() == ""
