@@ -122,17 +122,9 @@ class BTTreeView(QtWidgets.QWidget):
         # (e.g. after a pipeline step replaced it in the tool form)
         self.tree_view.clicked.connect(self.tree_item_clicked)
 
-        index = None
-        # select recent tool
-        if bt.recent_tool:
-            index = self.get_tool_index(bt.recent_tool)
-        if index is None or not index.isValid():
-            index = self.get_tool_index("Centerline")
-        if index is None or not index.isValid():
-            # index_set = self.tree_model.index(0, 0)
-            index = self.tree_model.indexFromItem(first_child)
-
-        self.select_tool_by_index(index)
+        # always start on the first tool in the list
+        if first_child is not None:
+            self.select_tool_by_index(self.tree_model.indexFromItem(first_child))
         self.tree_view.collapsed.connect(self.tree_item_collapsed)
         self.tree_view.expanded.connect(self.tree_item_expanded)
 
@@ -395,15 +387,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_bera_tools_guide = None
         self.action_about_bera_tools = None
         self._create_help_menu()
-        self.tool_api = None
-        if "Centerline" in bt.tools_list:
-            self.tool_name = "Centerline"
-        else:
-            self.tool_name = bt.tools_list[0] if bt.tools_list else None
-        self.recent_tool = bt.recent_tool if bt.recent_tool in bt.tools_list else None
-        if self.recent_tool:
-            self.tool_name = self.recent_tool
-            self.tool_api = bt.get_bera_tool_api(self.tool_name)
+        # always start on the first tool in the list (same as the tree view)
+        self.tool_name = bt.tools_list[0] if bt.tools_list else None
+        self.tool_api = bt.get_bera_tool_api(self.tool_name)
 
         # Only set to max if not already loaded from saved settings
         if bt.selected_cpu_cores <= 0:
@@ -494,6 +480,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # ToolWidgets
         tool_args = bt.get_bera_tool_args(self.tool_name)
         self.tool_widget = ToolWidgets(self.tool_name, tool_args, bt.show_advanced, bt_data_obj=bt)
+        # at startup, history inputs that no longer exist start empty instead of flagged
+        self.tool_widget.clear_missing_inputs()
         self.tool_scroll_area = QtWidgets.QScrollArea()
         self.tool_scroll_area.setWidgetResizable(True)
         self.tool_scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)

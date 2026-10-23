@@ -52,10 +52,10 @@ class TestMainWindowBasics:
     def test_window_visible(self, main_window):
         assert main_window.isVisible()
 
-    def test_stale_recent_tool_falls_back_to_centerline(self, qtbot, monkeypatch):
+    def test_starts_on_first_tool(self, qtbot, monkeypatch):
         from beratools.gui import bt_gui_main
 
-        monkeypatch.setattr(bt_gui_main.bt, "recent_tool", "Missing Tool")
+        monkeypatch.setattr(bt_gui_main.bt, "recent_tool", "Centerline")
         # closing the window at teardown asks to confirm, which would block the test run
         monkeypatch.setattr(
             bt_gui_main.QtWidgets.QMessageBox,
@@ -66,8 +66,7 @@ class TestMainWindowBasics:
         window = bt_gui_main.MainWindow()
         qtbot.addWidget(window)
 
-        assert window.recent_tool is None
-        assert window.tool_name == "Centerline"
+        assert window.tool_name == bt_gui_main.bt.tools_list[0]
 
     def test_run_button_exists(self, main_window):
         assert main_window.btn_run is not None
@@ -360,10 +359,10 @@ class TestTreeView:
 
         search.setText("")
 
-    def test_stale_recent_tool_falls_back_to_centerline(self, qtbot, monkeypatch):
+    def test_selects_first_tool(self, qtbot, monkeypatch):
         from beratools.gui import bt_gui_main
 
-        monkeypatch.setattr(bt_gui_main.bt, "recent_tool", "Missing Tool")
+        monkeypatch.setattr(bt_gui_main.bt, "recent_tool", "Centerline")
 
         tree_view = bt_gui_main.BTTreeView()
         qtbot.addWidget(tree_view)
@@ -373,7 +372,7 @@ class TestTreeView:
         item = tree_view.tree_model.itemFromIndex(source_index)
 
         assert item is not None
-        assert item.text() == "Centerline"
+        assert item.text() == bt_gui_main.bt.tools_list[0]
 
 
 class TestKeyboardInput:
