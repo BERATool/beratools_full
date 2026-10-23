@@ -343,7 +343,7 @@ class BTListView(QtWidgets.QWidget):
         btn_delete.clicked.connect(self.delete_selected_item)
         btn_clear.clicked.connect(self.clear_all_items)
         self.sel_model.selectionChanged.connect(self.selection_changed)
-        self.list_view.clicked.connect(lambda index: self.tool_changed.emit(self.list_model.data(index)))
+        self.list_view.clicked.connect(self.item_clicked)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_h)
@@ -358,6 +358,12 @@ class BTListView(QtWidgets.QWidget):
         selection = new.indexes()[0]
         tool = self.list_model.itemData(selection)[0]
         self.tool_changed.emit(tool)
+
+    def item_clicked(self, index):
+        # clicking the already selected tool doesn't change the selection, but should still show it
+        tool = index.data()
+        if tool:
+            self.tool_changed.emit(tool)
 
     def set_data_list(self, data_list):
         self.list_model.setStringList(data_list)

@@ -156,6 +156,18 @@ def test_clicking_selected_tool_leaves_step(main_window, panel):
     assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
 
 
+def test_clicking_history_tool_leaves_step(main_window, panel):
+    main_window.set_tool(INFO)
+    panel.add_tool(CSF)
+    assert main_window.pipeline_step is panel.steps[0]
+
+    history = main_window.tool_history
+    history.set_data_list([INFO])
+    history.item_clicked(history.list_model.index(0, 0))
+    assert main_window.pipeline_step is None
+    assert main_window.btn_layout_top.itemAt(0).widget().text() == INFO
+
+
 def test_tool_values_kept_while_editing_steps(main_window, panel):
     main_window.set_tool(DTM)
     main_window.tool_widget.widgets_by_variable["out_folder"].in_file.setText("D:/my_dtm")
