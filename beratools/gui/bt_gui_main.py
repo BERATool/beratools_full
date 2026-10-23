@@ -118,6 +118,9 @@ class BTTreeView(QtWidgets.QWidget):
         self.tree_model.setHorizontalHeaderLabels(["Tools"])
         self.tree_sel_model = self.tree_view.selectionModel()
         self.tree_sel_model.selectionChanged.connect(self.tree_view_selection_changed)
+        # clicking the already selected tool doesn't change the selection, but should still show it
+        # (e.g. after a pipeline step replaced it in the tool form)
+        self.tree_view.clicked.connect(self.tree_item_clicked)
 
         index = None
         # select recent tool
@@ -176,6 +179,11 @@ class BTTreeView(QtWidgets.QWidget):
 
         tool = item.text()
         self.tool_changed.emit(tool)
+
+    def tree_item_clicked(self, index):
+        item = self.tree_model.itemFromIndex(self.tags_model.mapToSource(index))
+        if item and item.parent():
+            self.tool_changed.emit(item.text())
 
     def tree_item_expanded(self, index):
         source_index = self.tags_model.mapToSource(index)
@@ -335,6 +343,7 @@ class BTListView(QtWidgets.QWidget):
         btn_delete.clicked.connect(self.delete_selected_item)
         btn_clear.clicked.connect(self.clear_all_items)
         self.sel_model.selectionChanged.connect(self.selection_changed)
+        self.list_view.clicked.connect(self.item_clicked)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_h)
@@ -349,6 +358,12 @@ class BTListView(QtWidgets.QWidget):
         selection = new.indexes()[0]
         tool = self.list_model.itemData(selection)[0]
         self.tool_changed.emit(tool)
+
+    def item_clicked(self, index):
+        # clicking the already selected tool doesn't change the selection, but should still show it
+        tool = index.data()
+        if tool:
+            self.tool_changed.emit(tool)
 
     def set_data_list(self, data_list):
         self.list_model.setStringList(data_list)
@@ -403,6 +418,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pipeline_step = None
         self.pipeline_run = None
         self.pipeline_index = 0
+        # switching between a tool and pipeline steps keeps each tool's unsaved values, the tool to go
+        # back to from a step, and the step to show again when going back to the Pipeline tab
+        self.tool_drafts = {}
+        self.standalone_tool = self.tool_name
+        self.last_pipeline_step = None
 
         # BERA tool list
         self.bera_tools = bt.bera_tools
@@ -443,6 +463,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_tabs.addTab(self.pipeline_panel, "Pipeline")
         self.left_tabs.tabBar().setAcceptDrops(True)
         self.left_tabs.tabBar().setChangeCurrentOnDrag(True)
+        self.left_tabs.currentChanged.connect(self.left_tab_changed)
 
         # left and right sides are in splitters, which keep their sizes when the content changes
         # (e.g. selecting a pipeline step) and let the user resize them
@@ -590,11 +611,18 @@ class MainWindow(QtWidgets.QMainWindow):
             event.ignore()
 
     def set_tool(self, tool=None):
+        # a click also changes the tree selection, and selecting the tool in the tree below calls this again
+        if tool == self.tool_name and self.pipeline_step is None:
+            return
+
+        self._save_tool_draft()
         if tool:
             self.tool_name = tool
+        self.standalone_tool = self.tool_name
 
         # choosing a tool from the tree or history stops editing a pipeline step
         if self.pipeline_step is not None:
+            self.last_pipeline_step = self.pipeline_step
             self.pipeline_step = None
             self.pipeline_panel.list_widget.blockSignals(True)
             self.pipeline_panel.list_widget.setCurrentRow(-1)
@@ -603,6 +631,24 @@ class MainWindow(QtWidgets.QMainWindow):
         # let tree view select the tool
         self.tree_view.select_tool_by_name(self.tool_name)
         self._show_tool_form(self.tool_name, self.tool_name)
+        if self.tool_name in self.tool_drafts:
+            self.tool_widget.update_widgets(self.tool_drafts[self.tool_name])
+
+    def _save_tool_draft(self):
+        """Remember the values in a tool's form (not a step's), to restore them when the tool is shown again."""
+        if self.pipeline_step is None:
+            self.tool_drafts[self.tool_name] = self.tool_widget.get_widgets_values()
+
+    def left_tab_changed(self, index):
+        """Show the form that goes with the tab: the last pipeline step, or the tool chosen in the tree."""
+        if self.left_tabs.widget(index) is self.pipeline_panel:
+            step = self.last_pipeline_step
+            if self.pipeline_step is None and step is not None:
+                row = pipeline.step_index(self.pipeline_panel.steps, step["id"])
+                if row is not None:
+                    self.pipeline_panel.list_widget.setCurrentRow(row)
+        elif self.pipeline_step is not None:
+            self.set_tool(self.standalone_tool)
 
     def _show_tool_form(self, tool_name, label_text):
         self.tool_api = bt.get_bera_tool_api(tool_name)
@@ -621,9 +667,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def show_pipeline_step(self, step):
         """Show a pipeline step's arguments in the tool form; edits are stored in the step."""
-        self.pipeline_step = step
         if step is None:
+            # the step is no longer selected (e.g. it was removed): go back to the tool
+            if self.pipeline_step is not None:
+                self.set_tool(self.standalone_tool)
             return
+
+        self._save_tool_draft()
+        self.pipeline_step = step
+        self.last_pipeline_step = step
 
         steps = self.pipeline_panel.steps
         index = pipeline.step_index(steps, step["id"])
