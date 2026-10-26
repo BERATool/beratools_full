@@ -1245,6 +1245,9 @@ class OptionsInput(QtWidgets.QWidget):
         if self.option_list:
             # convert to strings
             self.option_list = [str(item) for item in self.option_list]
+        # a saved value from an older tool version may no longer be an option
+        if str(self.value) not in self.option_list:
+            self.value = self.default_value
 
         values = ()
         for v in self.option_list:
@@ -1273,6 +1276,8 @@ class OptionsInput(QtWidgets.QWidget):
         self.value = self.option_list[i]
 
     def set_value(self, value):
+        if str(value) not in self.option_list:
+            return
         self.value = value
         for v in self.option_list:
             if value == v:

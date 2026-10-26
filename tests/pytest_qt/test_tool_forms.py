@@ -435,14 +435,41 @@ class TestFootprintPlots:
         assert isinstance(_find_widget(tw, "in_line"), FileSelector)
         assert isinstance(_find_widget(tw, "plot_area"), NumericInput)
         assert isinstance(_find_widget(tw, "subplot_area"), NumericInput)
+        assert isinstance(_find_widget(tw, "mode"), OptionsInput)
+        assert isinstance(_find_widget(tw, "plot_length"), NumericInput)
+        assert isinstance(_find_widget(tw, "subplot_length"), NumericInput)
+        assert isinstance(_find_widget(tw, "remove_overlap"), BooleanInput)
         assert isinstance(_find_widget(tw, "out_plot"), FileSelector)
         assert isinstance(_find_widget(tw, "out_subplot"), FileSelector)
 
     def test_defaults(self, make_tool_widget):
         tw = make_tool_widget(self.TOOL)
         args = tw.get_widgets_arguments()
+        assert args["mode"] == "fixed_area"
         assert args["plot_area"] == pytest.approx(100.0)
         assert args["subplot_area"] == pytest.approx(10.0)
+        assert args["plot_length"] == pytest.approx(50.0)
+        assert args["subplot_length"] == pytest.approx(10.0)
+        # the value may come from saved settings, so only check the type
+        assert isinstance(args["remove_overlap"], bool)
+
+    def test_size_options_follow_mode(self, make_tool_widget):
+        tw = make_tool_widget(self.TOOL, show_advanced=True)
+        area_widgets = [_find_widget(tw, "plot_area"), _find_widget(tw, "subplot_area")]
+        length_widgets = [_find_widget(tw, "plot_length"), _find_widget(tw, "subplot_length")]
+
+        assert not any(w.isHidden() for w in area_widgets)
+        assert all(w.isHidden() for w in length_widgets)
+
+        _find_widget(tw, "mode").set_value("fixed_length")
+        tw._update_dependency_states()
+        assert all(w.isHidden() for w in area_widgets)
+        assert not any(w.isHidden() for w in length_widgets)
+
+        _find_widget(tw, "mode").set_value("fixed_area")
+        tw._update_dependency_states()
+        assert not any(w.isHidden() for w in area_widgets)
+        assert all(w.isHidden() for w in length_widgets)
 
     def test_round_trip(self, make_tool_widget, btdata, testdata_dir, tmp_path):
         gpkg = str(testdata_dir / "integration_aoi.gpkg")

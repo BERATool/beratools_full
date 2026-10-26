@@ -115,6 +115,25 @@ $ beratools dtm --in_las_folder tests/data/LiDAR --out_folder tests/data/LiDAR/R
 Sample tiles are in `tests/data/LiDAR/`, and `examples/` has two scripts that run the LiDAR tools in
 sequence (see [examples/README.md](examples/README.md)).
 
+## Footprint Plots and Subplots
+
+[Footprint Plots and Subplots](https://beratool.github.io/beratools/user/footprint_plots/) (`footprint_plots`)
+splits line footprints into plots and subplots along their centerlines, for field sampling or for
+summarizing data along a line. It is ported from [SegLine](https://github.com/IrinaTerentieva/SegLine)
+and supports both SegLine modes:
+
+- **Fixed area** (`fixed_area`): plots and subplots have a target area, e.g. 100 m² and 10 m².
+- **Fixed length** (`fixed_length`): plots and subplots have a fixed length along the line, e.g. 50 m and 10 m.
+
+Each plot side and subplot gets `UniqueID`, `side`, `plot_id`, `subplot_id` and area, length and
+perimeter attributes. With **Remove overlaps**, each area where footprints overlap is counted once: a
+line that ends in an overlap is trimmed back to the other footprint, otherwise north-south and
+east-west lines keep the overlap, then the longer line.
+
+```bash
+$ beratools footprint_plots --in_footprint "tests/data/integration_aoi.gpkg|Gnd_FP" --in_line "tests/data/integration_aoi.gpkg|merged_lines" --out_plot "plots.gpkg|plots" --out_subplot "plots.gpkg|subplots" --mode fixed_area --remove_overlap True
+```
+
 ## Pipelines
 
 The **Pipeline** tab, next to **Tool history** in the GUI, chains tools into steps that run one after

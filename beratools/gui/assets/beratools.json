@@ -1220,22 +1220,84 @@
               "optional": false
             },
             {
-              "variable": "plot_area",
-              "label": "Plot area (m2)",
-              "description": "Target plot area covering both sides of the line. Each side of a plot is a separate feature.",
-              "type": "number",
-              "subtype": "float",
-              "default": 100.0,
+              "variable": "mode",
+              "label": "Segmentation mode",
+              "description": "'fixed_area' cuts plots and subplots to a target area. 'fixed_length' cuts them at a fixed spacing along the centerline.",
+              "type": "list",
+              "subtype": "string",
+              "data": ["fixed_area", "fixed_length"],
+              "default": "fixed_area",
               "output": false,
               "optional": true
             },
             {
+              "variable": "plot_area",
+              "label": "Plot area (m2)",
+              "description": "Fixed area mode: target plot area covering both sides of the line. Each side of a plot is a separate feature.",
+              "type": "number",
+              "subtype": "float",
+              "default": 100.0,
+              "output": false,
+              "optional": true,
+              "depends_on": {
+                "variable": "mode",
+                "condition": "fixed_area",
+                "mode": "hide"
+              }
+            },
+            {
               "variable": "subplot_area",
               "label": "Subplot area (m2)",
-              "description": "Target subplot area on one side of the line. Subplots nest inside plots, so plot area / (2 x subplot area) is rounded to whole subplots.",
+              "description": "Fixed area mode: target subplot area on one side of the line. Subplots nest inside plots, so plot area / (2 x subplot area) is rounded to whole subplots.",
               "type": "number",
               "subtype": "float",
               "default": 10.0,
+              "output": false,
+              "optional": true,
+              "depends_on": {
+                "variable": "mode",
+                "condition": "fixed_area",
+                "mode": "hide"
+              }
+            },
+            {
+              "variable": "plot_length",
+              "label": "Plot length (m)",
+              "description": "Fixed length mode: distance between plot boundaries along the centerline.",
+              "type": "number",
+              "subtype": "float",
+              "default": 50.0,
+              "output": false,
+              "optional": true,
+              "depends_on": {
+                "variable": "mode",
+                "condition": "fixed_length",
+                "mode": "hide"
+              }
+            },
+            {
+              "variable": "subplot_length",
+              "label": "Subplot length (m)",
+              "description": "Fixed length mode: distance between subplot boundaries along the centerline. Subplots restart at each plot boundary.",
+              "type": "number",
+              "subtype": "float",
+              "default": 10.0,
+              "output": false,
+              "optional": true,
+              "depends_on": {
+                "variable": "mode",
+                "condition": "fixed_length",
+                "mode": "hide"
+              }
+            },
+            {
+              "variable": "remove_overlap",
+              "label": "Remove overlaps",
+              "description": "Cut overlaps between footprints, such as at line crossings, so each area is in only one plot and subplot and is not counted twice. A line ending in an overlap always loses it and is trimmed back. At crossings, north-south and east-west lines keep the overlap over lines in other directions, then the longer centerline.",
+              "type": "list",
+              "subtype": "bool",
+              "data": [true, false],
+              "default": false,
               "output": false,
               "optional": true
             },

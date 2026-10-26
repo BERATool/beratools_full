@@ -218,6 +218,16 @@ class TestOptionsInput:
         w.combobox.setCurrentIndex(0)
         assert w.value == "50"
 
+    def test_stale_saved_value_falls_back_to_default(self, make_options_input):
+        w = make_options_input({**self.PARAM, "saved_value": "42"})
+        assert w.combobox.currentText() == "90"
+        assert w.get_value() == {"canopy_percentile": "90"}
+
+    def test_set_value_ignores_unknown_option(self, make_options_input):
+        w = make_options_input(self.PARAM)
+        w.set_value("42")
+        assert w.get_value() == {"canopy_percentile": "90"}
+
 
 class TestWidgetSignals:
     def test_numeric_value_changed_signal_payload(self, make_numeric_input, qtbot):
