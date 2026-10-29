@@ -17,7 +17,6 @@ import copy
 import json
 import os
 import platform
-import re
 import shlex
 import signal
 import sys
@@ -479,9 +478,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ToolWidgets
         tool_args = bt.get_bera_tool_args(self.tool_name)
+        # saved history is loaded as-is; inputs that can't be found are flagged in red
         self.tool_widget = ToolWidgets(self.tool_name, tool_args, bt.show_advanced, bt_data_obj=bt)
-        # at startup, history inputs that no longer exist start empty instead of flagged
-        self.tool_widget.clear_missing_inputs()
         self.tool_scroll_area = QtWidgets.QScrollArea()
         self.tool_scroll_area.setWidgetResizable(True)
         self.tool_scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
@@ -824,14 +822,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 print("custom_callback: Problem parsing data into number: ", e)
             except Exception as e:
                 print(e)
-        # R tools print "R_PROGRESS:<percent>". lidR's progress bar clears itself with spaces and
-        # carriage returns but no newline, so the marker can come after that on the same line.
-        r_progress = re.search(r"R_PROGRESS:(\d+)", value)
-        if r_progress:
-            self.progress_bar.setValue(int(r_progress.group(1)))
-            value = value[: r_progress.start()] + value[r_progress.end() :]
-            if not value.strip():
-                return
         if "PROGRESS_LABEL" in value:
             str_label = extract_string_from_printout(value, "PROGRESS_LABEL")
             value = value.replace(str_label, "").strip()  # remove progress string

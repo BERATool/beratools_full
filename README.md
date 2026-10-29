@@ -6,7 +6,7 @@ BERA Tools is successor of [Forest Line Mapper](https://github.com/appliedgrg/fl
 
 [![Python Integration Tests](https://img.shields.io/github/actions/workflow/status/BERATool/beratools/python-integration-tests.yml?branch=main)](https://github.com/BERATool/beratools/actions/workflows/python-integration-tests.yml)
 [![GitHub Pages](https://img.shields.io/github/deployments/BERATool/beratools/github-pages?label=docs)](https://beratool.github.io/beratools/)
-[![Conda Version](https://img.shields.io/conda/v/AppliedGRG/beratools)](https://anaconda.org/AppliedGRG/beratools)
+[![Conda Version](https://img.shields.io/conda/v/bera_tools/beratools)](https://anaconda.org/bera_tools/beratools)
 [![PyPI](https://img.shields.io/pypi/v/BERATools)](https://pypi.org/project/BERATools/)
 [![Python Version](https://img.shields.io/badge/python-3.12--3.14-blue)](https://www.python.org/downloads/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -51,78 +51,22 @@ Install with Anaconda works on Windows, macOS, and Linux.
 
 For more information about installation, check the [BERA Tools Installation](https://beratool.github.io/beratools/user/installation/).
 
-#### Troubleshooting: `CondaEnvException: Pip failed`
-
-`environment.yml` installs `rpy2` with pip at the end of `conda env create`. If that step fails
-(e.g. `Pip subprocess error`), create the environment without pip first, then install `rpy2` yourself:
-
-1. Open `environment.yml` and comment out the pip section:
-
-   ```yaml
-   #  - pip:
-   #      - rpy2
-   ```
-
-2. Create and activate the environment:
-
-   ```bash
-   $ conda env create -n bera -f environment.yml
-   $ conda activate bera
-   ```
-
-3. Set the R paths (Windows **Anaconda Prompt**):
-
-   ```bat
-   set "R_HOME=%CONDA_PREFIX%\Lib\R"
-   set "PATH=%R_HOME%\bin\x64;%PATH%"
-   ```
-
-4. Install `rpy2` with pip:
-
-   ```bash
-   $ python -m pip install rpy2
-   ```
-
-If pip still fails, check that the environment's Python starts with `python -c "print('ok')"`. A
-Python that does not start (e.g. "The file or directory is corrupted and unreadable") is the real
-cause. Rebuild the environment with a different Python version.
-
-## PC2Products (LiDAR) Tools
-
-The **PC2Products** (Point Cloud to Products) category turns LiDAR point clouds (`.las` / `.laz`) into
-rasters such as a DTM, DSM, CHM and hummock/hollow maps. The tools run R and
-[lidR](https://r-lidar.github.io/lidRbook/) through [rpy2](https://rpy2.github.io/); `environment.yml`
-and `pixi.toml` include R, and the tools install the R packages they need the first time they run
-(see [R for the PC2Products tools](https://beratool.github.io/beratools/user/installation/#r-for-the-pc2products-lidar-tools)).
-
-| Tool | `bt` subcommand |
-|------|-----------------|
-| [LiDAR data info](https://beratool.github.io/beratools/user/las_info/) | `las_info` |
-| [Raster Cell size from LiDAR data](https://beratool.github.io/beratools/user/cellsize/) | `cellsize` |
-| [Ground Classify Using CSF](https://beratool.github.io/beratools/user/gnd_csf/) | `gnd_csf` |
-| [Generate DTM from LiDAR Data](https://beratool.github.io/beratools/user/dtm/) | `dtm` |
-| [Normalize LiDAR Data](https://beratool.github.io/beratools/user/normalize/) | `normalize` |
-| [Generate CHM or DSM from LiDAR Data](https://beratool.github.io/beratools/user/chm_dsm/) | `chm_dsm` |
-| [Detect Hummock and Hollow from LiDAR Data](https://beratool.github.io/beratools/user/hummock_hollow/) | `hh` |
-| [Surface Water Mapping](https://beratool.github.io/beratools/user/surface_water/) | `surface_water` |
-| [Depth-to-Water from Surface Water](https://beratool.github.io/beratools/user/dtw/) | `dtw` |
-| [Seismic Line Disturbance Analysis](https://beratool.github.io/beratools/user/seismic_line_analysis/) | `line_analysis` |
-
-```bash
-$ beratools dtm --in_las_folder tests/data/LiDAR --out_folder tests/data/LiDAR/Raster_Output --style tin
-```
-
-Sample tiles are in `tests/data/LiDAR/`, and `examples/` has two scripts that run the LiDAR tools in
-sequence (see [examples/README.md](examples/README.md)).
-
 ## Pipelines
 
 The **Pipeline** tab, next to **Tool history** in the GUI, chains tools into steps that run one after
 another. Drag tools in from the tool tree, set each step's parameters in the tool form, and link a
 step's inputs to an earlier step's output. Each input links to the latest earlier step that makes what
-it needs, for example a CHM from **Generate CHM or DSM from LiDAR Data** into **Centerline**, and the
-links are reset whenever a step is added, moved or removed. Pipelines save as `.json` files and also
-run without the GUI:
+it needs, for example the checked lines from **Check Seed Lines** into **Centerline**, and the
+links are reset whenever a step is added, moved or removed.
+
+![BERA Tools Pipeline panel](docs/files/screenshots/bt_pipeline.png)
+
+The example above chains the six mapping tools into a ground footprint workflow. Each step lists the
+step it reads from (`← step 5`), and the selected step's linked inputs are shown under
+**Inputs from earlier steps** and greyed out in the tool form. Use **Run Pipeline** to run all steps
+in order.
+
+Pipelines save as `.json` files and also run without the GUI:
 
 ```bash
 $ python -m beratools.core.pipeline my_pipeline.json --processes 4

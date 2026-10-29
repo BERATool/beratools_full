@@ -53,6 +53,15 @@ jobs:
           printf '### Publishing source\n\n- Mode: `%s`\n- Tag: `%s`\n- Source commit: `%s`\n- Workflow commit: `%s`\n' \
             "$mode" "${tag:-none}" "$source_sha" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 
+      # Build the tagged source with the recipe from the dispatched commit, so packaging
+      # fixes can be released for an existing tag without moving it.
+      - name: Use recipe from workflow commit
+        if: steps.source.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          git checkout "$GITHUB_SHA" -- packaging/recipe.yaml
+          printf -- '- Recipe commit: `%s`\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
       # Disable Pixi cache to avoid pixi.lock lookup
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.8.1
@@ -95,8 +104,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "🏗️ Building version: $VERSION"
-          echo "📌 Using channels: appliedgrg, conda-forge"
-          rattler-build build -c appliedgrg -c conda-forge
+          echo "📌 Using channels: bera_tools, conda-forge"
+          rattler-build build -c bera_tools -c conda-forge
           echo "Build complete. Outputs under ./output"
 
       - name: Collect artifacts to ./dist/conda
@@ -106,7 +115,8 @@ jobs:
           shopt -s nullglob
           echo "📦 Collecting build outputs from packaging/output"
 
-          files=(packaging/output/*.conda packaging/output/*.tar.bz2)
+          # rattler-build writes packages into a platform subdir (e.g. output/noarch/)
+          files=(packaging/output/*/*.conda packaging/output/*/*.tar.bz2)
           if [ ${#files[@]} -ne 1 ]; then
             echo "❌ Expected one build artifact, found ${#files[@]}."
             exit 1
@@ -176,7 +186,7 @@ jobs:
           echo "🚀 Uploading ${files[0]}"
           # Pixi exposes `binstar` (not `anaconda`). Use --label (not --channel).
           binstar -t "$ANACONDA_API_TOKEN" upload --fail "${files[0]}" \
-            --user appliedgrg --label main
+            --user bera_tools --label main
 
           echo "🎉 Upload complete!"
 
