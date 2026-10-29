@@ -16,10 +16,14 @@ jobs:
         include:
           - python-version: "3.12"
             toxenv: py312
+            conda-networkit: networkit
           - python-version: "3.13"
             toxenv: py313
+            conda-networkit: networkit
+          # conda-forge has no networkit build for 3.14 yet; use the PyPI wheel
           - python-version: "3.14"
             toxenv: py314
+            conda-networkit: ""
 
     steps:
       - uses: actions/checkout@v7
@@ -36,8 +40,8 @@ jobs:
             dask
             gdal>=3.12,<4
             geopandas
-            pandas>=2.0,<3.0
-            networkit
+            pandas
+            ${{ matrix.conda-networkit }}
             numpy>=1.26,<2.4
             pandas
             pyogrio>=0.12
@@ -46,23 +50,27 @@ jobs:
             scikit-image>=0.24
             tqdm
             xarray-spatial
-            pandarallel
             python-igraph
             tabulate
             pip
             pytest
             pytest-qt
             tox
+            psutil
           condarc: |
             channel_priority: strict
             channels:
-              - appliedgrg
+              - bera_tools
               - conda-forge
           cache-environment: true
 
       - name: Install project
         shell: bash -el {0}
-        run: python -m pip install -e . --no-deps
+        run: |
+          if [ -z "${{ matrix.conda-networkit }}" ]; then
+            python -m pip install networkit
+          fi
+          python -m pip install -e . --no-deps
 
       - name: Run Tests
         shell: bash -el {0}

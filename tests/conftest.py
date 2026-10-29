@@ -62,6 +62,7 @@ def tool_arguments_integration(testdata_dir, available_cpu_cores):
             "in_raster": testdata_dir.joinpath("chm_aoi.tif").as_posix(),
             "line_radius": 15,
             "proc_segments": True,
+            "merge_by_original_line": True,
             "out_line": f"{testdata_dir.joinpath('integration_inter.gpkg').as_posix()}|centerline",
             "chm_mode": "current",
             "centerline_method": "astar"
@@ -162,6 +163,7 @@ def tool_arguments_workflow(testdata_dir, available_cpu_cores):
             "in_raster": testdata_dir.joinpath("chm_aoi.tif").as_posix(),
             "line_radius": 15,
             "proc_segments": True,
+            "merge_by_original_line": True,
             "out_line": f"{testdata_dir.joinpath('workflow.gpkg').as_posix()}|centerline",
         },
         "args_centerline_pairwise": {
