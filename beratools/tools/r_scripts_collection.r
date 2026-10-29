@@ -612,20 +612,53 @@ hh_function <- function(in_las_folder,out_folder, cell_size, Smooth_by, Min_ws, 
 
 ###########################################################################
 
-classify_gnd_csf <- function(in_las_folder, out_folder, slope, class_threshold, cloth_resolution, rigidness,rprocesses,rest) {
+# Chunk size (m) for classifying a catalog, or 0 to process it by file. The catalog is tiled when
+# a file holds more points than one worker's share of the free memory allows, or when there are
+# fewer files than workers. Chunks are sized to fit that memory and give every worker a chunk, and
+# are at least 10 buffers wide so the buffer adds under ~45% to each read.
+choose_chunk_size <- function(ctg, workers, free_mem, buffer, bytes_per_point = 100) {
+    d <- ctg@data
+    pts <- d$Number.of.point.records
+    area <- (d$Max.X - d$Min.X) * (d$Max.Y - d$Min.Y)
+    max_pts <- 0.6 * free_mem / workers / bytes_per_point
+    if (max(pts) <= max_pts && nrow(d) >= workers) return(0)
+
+    density <- sum(pts) / sum(area)
+    chunk_area <- min(max_pts / density, sum(area) / workers)
+    size <- max(floor(sqrt(chunk_area) / 50) * 50, 10 * buffer)
+    # Chunks as large as the files would not split them, so keep the files and their names
+    if (max(pts) <= max_pts && size >= sqrt(max(area))) return(0)
+    size
+}
+
+classify_gnd_csf <- function(in_las_folder, out_folder, slope, class_threshold, cloth_resolution, rigidness,rprocesses,rest,free_mem) {
     library(lidR)
     library(future)
     library(RCSF)
 
     print("loading LiDAR Data")
-    plan(multisession, workers = max(1, floor(rprocesses / 2)))
+    workers <- max(1, floor(rprocesses / 2))
+    plan(multisession, workers = workers)
     on.exit(plan(sequential), add = TRUE)
     set_lidr_threads(rprocesses)
 
     ctg <- readLAScatalog(in_las_folder, filter = '-drop_class 7 -drop_overlap')
     cat(sprintf("R_PROGRESS:%d\n",round(0.2 * 100)))
     flush.console()
-    opt_output_files(ctg) <- paste0(out_folder, "/{*}_gnd_classified")
+
+    buffer <- 20
+    opt_chunk_buffer(ctg) <- buffer
+    chunk_size <- choose_chunk_size(ctg, workers, free_mem, buffer)
+    if (chunk_size > 0) {
+        # A chunk can span several files, so outputs are named by their lower-left corner
+        print(paste0("Tiling the LiDAR data into ", chunk_size, " m chunks for ", workers, " worker(s)..."))
+        opt_chunk_size(ctg) <- chunk_size
+        opt_chunk_alignment(ctg) <- c(0, 0)
+        opt_output_files(ctg) <- paste0(out_folder, "/{XLEFT}_{YBOTTOM}_gnd_classified")
+    } else {
+        print(paste0("Processing the LiDAR data by file with ", workers, " worker(s)..."))
+        opt_output_files(ctg) <- paste0(out_folder, "/{*}_gnd_classified")
+    }
     opt_laz_compression(ctg) <- FALSE
     gnd_csf <- csf(slope, class_threshold = class_threshold, cloth_resolution = cloth_resolution, rigidness = rigidness, iterations = 500, time_step = 0.65)
     print("Classify ground start....")

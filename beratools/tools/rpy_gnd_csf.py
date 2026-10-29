@@ -45,7 +45,8 @@ def rpy_gnd_csf(in_las_folder,
     classify_gnd_csf_algorith = r_common.robjects.globalenv['classify_gnd_csf']
     classify_gnd_csf_algorith(in_las_folder, out_folder, bool(slope), float(class_threshold),
                               float(cloth_resolution),int(rigidness),
-                              rprocesses,bool(rest))
+                              rprocesses,bool(rest),
+                              float(r_common.psutil.virtual_memory().available))
 
 if __name__ == '__main__':
 
